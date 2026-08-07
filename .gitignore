@@ -1,0 +1,19 @@
+### IntelliJ ###
+.idea/
+*.iml
+
+### Maven ###
+target/
+
+### Logs ###
+*.log
+
+### Java ###
+*.class
+
+### Environment ###
+.env
+
+### OS ###
+.DS_Store
+Thumbs.db
