@@ -1,12 +1,13 @@
 package com.devpulse.backend.exception;
 
+import com.devpulse.backend.dto.ErrorResponse;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import com.devpulse.backend.dto.ErrorResponse;
+
 import java.time.LocalDateTime;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -43,6 +44,30 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleEmailAlreadyExistsException(
             EmailAlreadyExistsException ex) {
+
+        return new ErrorResponse(
+                LocalDateTime.now().toString(),
+                HttpStatus.CONFLICT.value(),
+                ex.getMessage()
+        );
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleResourceNotFoundException(
+            ResourceNotFoundException ex) {
+
+        return new ErrorResponse(
+                LocalDateTime.now().toString(),
+                HttpStatus.NOT_FOUND.value(),
+                ex.getMessage()
+        );
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleConflictException(
+            ConflictException ex) {
 
         return new ErrorResponse(
                 LocalDateTime.now().toString(),
