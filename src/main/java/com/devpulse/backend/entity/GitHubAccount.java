@@ -40,6 +40,13 @@ public class GitHubAccount extends BaseEntity {
 
     private LocalDateTime connectedAt;
 
+    @Column(nullable = false, length = 2000)
+    private String refreshToken;
+
+    private LocalDateTime accessTokenExpiresAt;
+
+    private LocalDateTime refreshTokenExpiresAt;
+
     @OneToOne
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;

@@ -1,5 +1,6 @@
 package com.devpulse.backend.security;
 
+import com.devpulse.backend.service.JwtBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,14 +21,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final CustomUserDetailsService customUserDetailsService;
+    private final JwtBlacklistService jwtBlacklistService;
+
 
     public JwtAuthenticationFilter(
             JwtService jwtService,
-            CustomUserDetailsService customUserDetailsService) {
+            CustomUserDetailsService customUserDetailsService,
+            JwtBlacklistService jwtBlacklistService) {
 
         this.jwtService = jwtService;
-        this.customUserDetailsService = customUserDetailsService;
+        this.customUserDetailsService =
+                customUserDetailsService;
+        this.jwtBlacklistService =
+                jwtBlacklistService;
     }
+
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String authHeader = request.getHeader("Authorization");
@@ -38,12 +47,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String token = authHeader.substring(7);
-        String username = jwtService.extractUsername(token);
+
+        String tokenId =
+                jwtService.extractTokenId(token);
+
+        if (jwtBlacklistService.isBlacklisted(tokenId)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String username =
+                jwtService.extractUsername(token);
 
         if (username != null && jwtService.isTokenValid(token)) {
 
             UserDetails userDetails =
-                    customUserDetailsService.loadUserByUsername(username);
+                    customUserDetailsService
+                            .loadUserByUsername(username);
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(

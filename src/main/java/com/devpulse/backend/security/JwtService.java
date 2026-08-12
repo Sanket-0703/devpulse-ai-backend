@@ -10,6 +10,8 @@ import io.jsonwebtoken.security.Keys;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 
@@ -30,6 +32,7 @@ public class JwtService {
     public String generateToken(User user) {
 
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(user.getEmail())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtProperties.getExpiration()))
@@ -64,6 +67,18 @@ public class JwtService {
 
         return !isTokenExpired(token);
 
+    }
+
+    public String extractTokenId(String token) {
+
+        return extractAllClaims(token)
+                .getId();
+    }
+
+    public Date extractExpiration(String token) {
+
+        return extractAllClaims(token)
+                .getExpiration();
     }
 
 }

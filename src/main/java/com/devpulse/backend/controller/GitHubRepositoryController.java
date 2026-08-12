@@ -1,5 +1,6 @@
 package com.devpulse.backend.controller;
 
+import com.devpulse.backend.dto.github.GitHubRepositoryCacheDto;
 import com.devpulse.backend.entity.GitHubRepository;
 import com.devpulse.backend.service.GitHubRepositoryService;
 import lombok.RequiredArgsConstructor;
@@ -34,12 +35,15 @@ public class GitHubRepositoryController {
     }
 
     @GetMapping("/account/{accountId}")
-    public ResponseEntity<List<GitHubRepository>> getRepositoriesByAccount(
+    public ResponseEntity<List<GitHubRepositoryCacheDto>>
+    getRepositoriesByAccount(
             @PathVariable Long accountId) {
 
         return ResponseEntity.ok(
                 githubRepositoryService
-                        .getRepositoriesByAccountId(accountId)
+                        .getCachedRepositoriesByAccountId(
+                                accountId
+                        )
         );
     }
 

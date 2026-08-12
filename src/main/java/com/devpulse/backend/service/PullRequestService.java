@@ -5,6 +5,9 @@ import com.devpulse.backend.entity.PullRequestState;
 
 import java.util.List;
 
+import com.devpulse.backend.entity.GitHubAccount;
+import com.devpulse.backend.entity.GitHubRepository;
+
 public interface PullRequestService {
 
     PullRequest savePullRequest(PullRequest pullRequest);
@@ -28,4 +31,12 @@ public interface PullRequestService {
     );
 
     void deletePullRequest(Long id);
+    void synchronizePullRequests(
+            GitHubAccount account,
+            GitHubRepository repository
+    );
+
+    List<PullRequest> getCachedPullRequestsByRepository(
+            Long repositoryId
+    );
 }
