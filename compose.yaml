@@ -7,8 +7,8 @@ services:
   redis:
     image: redis:7.4.10
 
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
+    # Not published on the host: the backend reaches it on devpulse-network,
+    # and host port 6379 is used by compose.dev.yaml's Redis.
 
     healthcheck:
       test:
@@ -49,11 +49,13 @@ services:
 
 
       # ========================================
-      # AWS RDS PostgreSQL
+      # PostgreSQL
       # ========================================
+      # Defaults to the Postgres from compose.dev.yaml on the host.
+      # Set DB_HOST / DB_PORT in .env to use AWS RDS instead.
 
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT:-5432}
+      DB_HOST: ${DB_HOST:-host.docker.internal}
+      DB_PORT: ${DB_PORT:-5433}
 
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -86,6 +88,20 @@ services:
       GITHUB_STATE_SECRET: ${GITHUB_STATE_SECRET}
 
 
+      # ========================================
+      # AWS S3 / AI (optional)
+      # ========================================
+
+      AWS_REGION: ${AWS_REGION:-eu-north-1}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-mock-ai}
+
+
+    # Embedding model download cache (~90 MB), kept across restarts.
+    volumes:
+      - model_cache:/app/model-cache
+
+
     depends_on:
       redis:
         condition: service_healthy
@@ -103,7 +119,8 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      # First start downloads the embedding model.
+      start_period: 120s
 
 
     restart: unless-stopped
@@ -120,3 +137,8 @@ networks:
 
   devpulse-network:
     driver: bridge
+
+
+volumes:
+
+  model_cache:

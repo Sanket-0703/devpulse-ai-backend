@@ -57,6 +57,12 @@ RUN useradd \
 # Copy executable JAR from build stage
 COPY --from=build /app/app.jar /app/app.jar
 
+# Embedding model cache (downloaded on first start, not baked into the image).
+# Mount a volume here to keep it across container restarts.
+RUN mkdir -p /app/model-cache
+
+ENV EMBEDDING_CACHE_DIR=/app/model-cache
+
 # Give application user ownership
 RUN chown -R appuser:appuser /app
 

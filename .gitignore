@@ -17,3 +17,6 @@ target/
 ### OS ###
 .DS_Store
 Thumbs.db
+### Model files (load from a URI instead; see application.properties) ###
+*.onnx
+src/main/resources/embeddings/
