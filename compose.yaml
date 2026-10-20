@@ -1,42 +1,6 @@
 services:
 
   # ==========================================
-  # PostgreSQL
-  # ==========================================
-
-  postgres:
-    image: postgres:17
-
-
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-
-    ports:
-      - "5433:5432"
-
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-
-
-    restart: unless-stopped
-    networks:
-      - devpulse-network
-
-
-  # ==========================================
   # Redis
   # ==========================================
 
@@ -58,6 +22,7 @@ services:
       retries: 5
 
     restart: unless-stopped
+
     networks:
       - devpulse-network
 
@@ -71,32 +36,60 @@ services:
       context: .
       dockerfile: Dockerfile
 
-
-
     ports:
       - "8080:8080"
 
     environment:
+
+      # ========================================
+      # Spring
+      # ========================================
+
       SPRING_PROFILES_ACTIVE: docker
+
+
+      # ========================================
+      # AWS RDS PostgreSQL
+      # ========================================
+
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-5432}
 
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
+
+      # ========================================
+      # Redis
+      # ========================================
+
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+
+      # ========================================
+      # JWT
+      # ========================================
+
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+
+
+      # ========================================
+      # GitHub OAuth
+      # ========================================
 
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
       GITHUB_REDIRECT_URI: ${GITHUB_REDIRECT_URI}
       GITHUB_STATE_SECRET: ${GITHUB_STATE_SECRET}
 
-    depends_on:
-      postgres:
-        condition: service_healthy
 
+    depends_on:
       redis:
         condition: service_healthy
+
 
     healthcheck:
       test:
@@ -112,19 +105,11 @@ services:
       retries: 5
       start_period: 30s
 
+
     restart: unless-stopped
 
     networks:
       - devpulse-network
-
-
-# ==========================================
-# Persistent Volumes
-# ==========================================
-
-volumes:
-
-  postgres_data:
 
 
 # ==========================================
