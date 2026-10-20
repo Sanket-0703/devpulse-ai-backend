@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  # ==========================================
+  # Backend: build + Testcontainers integration tests
+  # ==========================================
+
+  backend:
+    name: Backend build & tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # The app downloads the ~87 MB embedding model on first start
+      # (see spring.ai.embedding.transformer.* in application.properties).
+      # The key is the pinned Hugging Face revision: bump it with the URI.
+      - name: Cache embedding model
+        uses: actions/cache@v6
+        with:
+          path: ~/.devpulse/model-cache
+          key: embedding-model-all-MiniLM-L6-v2-1110a243fdf4706b3f48f1d95db1a4f5529b4d41
+
+      # Testcontainers starts PostgreSQL (pgvector) and Redis via the
+      # runner's Docker daemon; no .env or secrets are needed.
+      - name: Build and test
+        run: ./mvnw -B verify
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          retention-days: 7
+
+
+  # ==========================================
+  # Secret scan of the checked-out files (HEAD)
+  # ==========================================
+  # Scans the working tree rather than full history: the JWT secret rotated
+  # in M0-01 still exists in old commits (decision D-01, option a).
+  # .gitleaks.toml adds a rule for literal secrets in config files, which
+  # the built-in entropy-based rules miss.
+
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Run gitleaks
+        run: >
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.30.1
+          dir /repo --config /repo/.gitleaks.toml --redact --no-banner --verbose

@@ -1,0 +1,26 @@
+title = "DevPulse AI gitleaks config"
+
+# Keep all of gitleaks' built-in rules (API keys, private keys, tokens...).
+[extend]
+useDefault = true
+
+# The built-in rules rely on entropy and miss human-readable secrets such as
+# "postgres" or a passphrase-style JWT key, which is exactly what leaked
+# before M0-01. In config files, secret-looking keys must reference an
+# environment variable (${VAR}), so any literal value is a finding.
+[[rules]]
+id = "devpulse-literal-config-secret"
+description = "Literal value for a secret-looking key in a config file; use ${ENV_VAR} instead"
+regex = '''(?im)^[ \t]*[a-z0-9._-]*(?:secret|password|passwd|api-key|apikey|api_key|token\b)[a-z0-9._-]*[ \t]*[=:][ \t]*([^$\s#'"][^\s#]*)'''
+secretGroup = 1
+path = '''(?i)(\.properties|\.ya?ml|(^|/)\.env[^/]*)$'''
+keywords = ["secret", "password", "passwd", "api-key", "apikey", "api_key", "token"]
+
+# Known non-secret values: .env.example placeholders, test-profile values,
+# and the mock AI key placeholder.
+[[rules.allowlists]]
+regexTarget = "secret"
+regexes = [
+  '''^(change-me|test|mock-ai|test-client-secret)$''',
+  '''^test-only-''',
+]
