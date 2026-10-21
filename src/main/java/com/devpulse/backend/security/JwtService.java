@@ -19,9 +19,9 @@ import java.util.Date;
 import java.util.UUID;
 
 /**
- * Issues and verifies access tokens: HS256-signed JWTs that identify the
- * user by id (so they keep working if the email changes) and expire after
- * {@code jwt.access-token-ttl}.
+ * Issues and verifies access tokens. Each one is a JWT signed with HS256
+ * that identifies the user by id (so it keeps working if the email changes)
+ * and expires after {@code jwt.access-token-ttl}.
  */
 @Service
 public class JwtService {

@@ -17,10 +17,12 @@ path = '''(?i)(\.properties|\.ya?ml|(^|/)\.env[^/]*)$'''
 keywords = ["secret", "password", "passwd", "api-key", "apikey", "api_key", "token"]
 
 # Known non-secret values: .env.example placeholders, test-profile values,
-# and the mock AI key placeholder.
+# the mock AI key placeholder, and durations such as jwt.access-token-ttl=15m
+# (the key contains "token", but a duration can never be a secret).
 [[rules.allowlists]]
 regexTarget = "secret"
 regexes = [
   '''^(change-me|test|mock-ai|test-client-secret)$''',
   '''^test-only-''',
+  '''^[0-9]+(ms|s|m|h|d)$''',
 ]
