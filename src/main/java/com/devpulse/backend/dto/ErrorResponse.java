@@ -1,9 +1,12 @@
 package com.devpulse.backend.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 import java.util.List;
+
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 /**
  * The single error shape returned by every endpoint under /api.
@@ -22,14 +25,17 @@ import java.util.List;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ErrorResponse(
-        Instant timestamp,
-        int status,
-        String error,
-        String message,
-        String path,
+        @Schema(requiredMode = REQUIRED) Instant timestamp,
+        @Schema(requiredMode = REQUIRED) int status,
+        @Schema(requiredMode = REQUIRED) String error,
+        @Schema(requiredMode = REQUIRED) String message,
+        @Schema(requiredMode = REQUIRED) String path,
         List<FieldError> errors
 ) {
 
-    public record FieldError(String field, String message) {
+    public record FieldError(
+            @Schema(requiredMode = REQUIRED) String field,
+            @Schema(requiredMode = REQUIRED) String message
+    ) {
     }
 }

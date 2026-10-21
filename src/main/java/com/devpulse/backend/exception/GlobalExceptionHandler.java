@@ -1,9 +1,11 @@
 package com.devpulse.backend.exception;
 
 import com.devpulse.backend.dto.ErrorResponse;
+import com.devpulse.backend.security.RefreshTokenCookies;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -30,6 +32,12 @@ import java.util.List;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private final RefreshTokenCookies refreshTokenCookies;
+
+    public GlobalExceptionHandler(RefreshTokenCookies refreshTokenCookies) {
+        this.refreshTokenCookies = refreshTokenCookies;
+    }
 
     // ---------- 400 ----------
 
@@ -83,6 +91,22 @@ public class GlobalExceptionHandler {
             InvalidCredentialsException ex, HttpServletRequest request) {
 
         return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
+    }
+
+    // The session is over: also delete the useless cookie from the browser.
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRefreshToken(
+            InvalidRefreshTokenException ex, HttpServletRequest request) {
+
+        ResponseEntity<ErrorResponse> response = build(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
+
+        if (!ex.shouldClearCookie()) {
+            return response;
+        }
+
+        return ResponseEntity.status(response.getStatusCode())
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookies.clear())
+                .body(response.getBody());
     }
 
     @ExceptionHandler(AuthenticationException.class)

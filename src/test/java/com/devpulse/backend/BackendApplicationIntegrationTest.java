@@ -1,7 +1,7 @@
 package com.devpulse.backend;
 
+import com.devpulse.backend.dto.AuthResponse;
 import com.devpulse.backend.dto.LoginRequest;
-import com.devpulse.backend.dto.LoginResponse;
 import com.devpulse.backend.dto.ProfileResponse;
 import com.devpulse.backend.dto.RegisterRequest;
 import org.junit.jupiter.api.Test;
@@ -57,7 +57,7 @@ class BackendApplicationIntegrationTest extends AbstractIntegrationTest {
                 Integer.class
         );
 
-        assertThat(versions).containsExactly("1", "2");
+        assertThat(versions).containsExactly("1", "2", "3");
         assertThat(vectorExtensions).isEqualTo(1);
     }
 
@@ -75,21 +75,21 @@ class BackendApplicationIntegrationTest extends AbstractIntegrationTest {
         ResponseEntity<String> registered =
                 restTemplate.postForEntity("/api/auth/register", register, String.class);
 
-        assertThat(registered.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(registered.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         LoginRequest login = new LoginRequest();
         login.setEmail(email);
         login.setPassword(password);
 
-        ResponseEntity<LoginResponse> loggedIn =
-                restTemplate.postForEntity("/api/auth/login", login, LoginResponse.class);
+        ResponseEntity<AuthResponse> loggedIn =
+                restTemplate.postForEntity("/api/auth/login", login, AuthResponse.class);
 
         assertThat(loggedIn.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(loggedIn.getBody()).isNotNull();
-        assertThat(loggedIn.getBody().getToken()).isNotBlank();
+        assertThat(loggedIn.getBody().accessToken()).isNotBlank();
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(loggedIn.getBody().getToken());
+        headers.setBearerAuth(loggedIn.getBody().accessToken());
         HttpEntity<Void> authenticated = new HttpEntity<>(headers);
 
         ResponseEntity<ProfileResponse> profile = restTemplate.exchange(
@@ -105,10 +105,9 @@ class BackendApplicationIntegrationTest extends AbstractIntegrationTest {
         assertThat(loggedOut.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 
         // The token is blacklisted in Redis after logout.
-        // TODO(M1-03): tighten to 401 once the JWT filter returns JSON 401s.
         ResponseEntity<String> afterLogout = restTemplate.exchange(
                 "/api/profile", HttpMethod.GET, authenticated, String.class);
 
-        assertThat(afterLogout.getStatusCode().is4xxClientError()).isTrue();
+        assertThat(afterLogout.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 }

@@ -34,7 +34,10 @@ public class JsonSecurityErrorHandler implements AuthenticationEntryPoint, Acces
     public void commence(HttpServletRequest request, HttpServletResponse response,
                          AuthenticationException authException) throws IOException {
 
-        write(response, request, HttpStatus.UNAUTHORIZED, "Authentication required");
+        Object reason = request.getAttribute(JwtAuthenticationFilter.AUTH_ERROR_ATTRIBUTE);
+        String message = reason != null ? reason.toString() : "Authentication required";
+
+        write(response, request, HttpStatus.UNAUTHORIZED, message);
     }
 
     // Valid token, but the user lacks the required role.

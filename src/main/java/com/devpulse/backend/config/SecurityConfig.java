@@ -3,10 +3,12 @@ package com.devpulse.backend.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import com.devpulse.backend.security.JsonSecurityErrorHandler;
@@ -45,10 +47,16 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         return http
+                // No CSRF tokens: auth is a Bearer header, and the only cookie
+                // (refresh token) is SameSite=Strict and scoped to /api/auth.
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
+                // Stateless: every request carries its own access token; no HTTP session.
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/auth/register", "/api/auth/login",
+                                "/api/auth/refresh", "/api/auth/logout").permitAll()
                         .requestMatchers("/api/github/oauth/callback").permitAll()
                         .requestMatchers("/api/github/oauth/authorize").authenticated()
                         .requestMatchers("/actuator/health").permitAll()
