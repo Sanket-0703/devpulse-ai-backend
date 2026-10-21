@@ -20,3 +20,6 @@ Thumbs.db
 ### Model files (load from a URI instead; see application.properties) ###
 *.onnx
 src/main/resources/embeddings/
+
+### Generated PDF copies of docs/ (regenerate from the .md files) ###
+docs/pdf/

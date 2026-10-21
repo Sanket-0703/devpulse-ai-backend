@@ -49,6 +49,14 @@ jobs:
       - name: Build and test
         run: ./mvnw -B verify
 
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-coverage
+          path: target/site/jacoco/
+          retention-days: 7
+
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v7
@@ -56,6 +64,40 @@ jobs:
           name: surefire-reports
           path: target/surefire-reports/
           retention-days: 7
+
+
+  # ==========================================
+  # Frontend: lint, format, typecheck, tests, build
+  # ==========================================
+
+  frontend:
+    name: Frontend checks & build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: frontend/.node-version
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint, format, typecheck, test
+        run: npm run check
+
+      - name: Build
+        run: npm run build
 
 
   # ==========================================
