@@ -9,6 +9,7 @@ Ground rules
 - **Mock AI by default.** No paid AI calls unless you approve them. OpenAI is the real provider (per the resume).
 - **Tests as we go.** JUnit + Mockito for every backend feature, with a JaCoCo gate building up to **80%+ coverage**. Every screen gets component tests (Vitest + React Testing Library). GitHub calls are tested against WireMock stubs, never the real GitHub.
 - **Learn the IDEs on the way.** IntelliJ IDEA for the backend, VS Code for the frontend. Each level teaches the IDE features that level needs; the running guide is [IDE_GUIDE.md](IDE_GUIDE.md).
+- **Every level ends with its own explainer.** `docs/levels/LEVEL_N.md` (and PDF) walks through every page, class and function built in that level, how the requests flow, and why it was built that way. Level docs: [Level 1](../levels/LEVEL_1.md) · [Level 2](../levels/LEVEL_2.md).
 - **Supported languages** for reviews, security rules and code search: **Java, JavaScript/TypeScript, Python**. Other files are skipped.
 
 ## Tech stack (from the resume)
@@ -67,17 +68,20 @@ Legend: `[x]` done · `[ ]` to do · **BE** backend · **FE** frontend
 
 **Check:** open `localhost:5173`, see the empty app shell; the browser can call the backend without CORS errors.
 
-## Level 2 — Authentication
+## Level 2 — Authentication ✅ (IDE debugging exercises are yours to do)
 
-- [ ] BE: register (201 JSON), login, logout (token blacklist), `GET /api/auth/me`
-- [ ] BE: short-lived access token + refresh token in a secure httpOnly cookie, with rotation on refresh
-- [ ] BE: bad / expired / logged-out token → clean JSON 401 (never 500)
-- [ ] BE: tests for each of the above
-- [ ] FE: Register and Login pages with validation and server errors (duplicate email, wrong password)
-- [ ] FE: auth state, protected routes, logout, silent token refresh, redirect to login when the session ends
-- [ ] IDE: debugging — breakpoints in IntelliJ (step through login) and in VS Code / browser dev tools
+- [x] BE: register (201 JSON), login, logout (refresh token revoked + access token blacklisted in Redis), `GET /api/auth/me`
+- [x] BE: 15-min access token (JWT, user id as subject) + 7-day refresh token in an httpOnly `SameSite=Strict` cookie; rotated on every refresh, stored only as a SHA-256 hash (`refresh_tokens`, Flyway V3); reuse of an old token revokes its whole family
+- [x] BE: bad / expired / forged / logged-out token → JSON 401 with a reason (never 500)
+- [x] BE: case-insensitive emails, bcrypt 72-byte password cap, same response time for unknown emails and wrong passwords
+- [x] BE: tests — 24 unit (JUnit + Mockito) + 17 integration; 50 backend tests total, coverage 27% → 42%
+- [x] FE: Register and Login pages (react-hook-form + zod) with field and server errors (duplicate email, wrong password), show/hide password
+- [x] FE: auth state, protected routes, return to the requested page after sign-in, user menu + sign out
+- [x] FE: access token in memory only; session restored from the cookie on reload; silent refresh + retry on 401, shared across requests and tabs (Web Locks)
+- [x] FE: 16 new tests (22 total) against an in-memory MSW auth backend
+- [ ] IDE: debugging — breakpoints in IntelliJ (step through login) and in VS Code / browser dev tools ([IDE_GUIDE.md](IDE_GUIDE.md), Level 2)
 
-**Check:** register → login → land on the dashboard → refresh keeps you logged in → logout → protected page sends you back to login.
+**Check:** register → login → land on the dashboard → refresh keeps you logged in → logout → protected page sends you back to login. ✅ Done in the browser against the real backend.
 
 ## Level 3 — Profile & settings
 

@@ -73,4 +73,7 @@ Commit the updated `src/lib/api/schema.d.ts`. TypeScript then flags every fronte
 | `docker: command not found` | Open a new terminal, or run `source ~/.zprofile` |
 | Backend fails with `Connection refused` to 5433 | `docker compose -f compose.dev.yaml up -d` |
 | Port 5173 or 8080 already in use | Another copy is running: `lsof -i :5173` (or `:8080`), then stop that process |
+| Backend fails with `WeakKeyException` | `JWT_SECRET` in `.env` is shorter than 32 characters; generate one with `openssl rand -base64 48` |
+| Backend fails with `password authentication failed` | `POSTGRES_PASSWORD` in `.env` doesn't match the one the local database was created with. Restore it, or reset the local database (deletes local data): `docker compose -f compose.dev.yaml down -v` then `up -d` |
+| Signed out after every backend restart | Expected only if `JWT_SECRET` changed; sessions survive restarts otherwise |
 | Browser console shows a CORS error | The frontend origin must be listed in `APP_ALLOWED_ORIGINS` (default `http://localhost:5173`) |

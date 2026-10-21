@@ -96,6 +96,76 @@ Each level adds a section with the IDE skills that level needs, plus a few exerc
 
 ---
 
+## Level 2 — Debugging: watch the code run
+
+Reading code tells you what *should* happen; a debugger shows what *does*. Level 2's auth flow is the perfect thing to step through.
+
+### IntelliJ: debug the backend
+
+**1. Start in debug mode**
+- Stop the backend if it's running, then pick the **Backend** run configuration and click the bug icon (or `⌃D`). The log shows in the *Debug* tool window instead of *Run*.
+- Code changes still need a rebuild: `⌘F9` (*Build Project*) recompiles, and Spring DevTools restarts the app.
+
+**2. Set breakpoints**
+- Click in the gutter next to a line number (or `⌘F8` on the current line). A red dot appears.
+- Right-click the dot → add a **Condition** (e.g. `request.getEmail().startsWith("e2e")`) so it only stops when it matters.
+
+**3. When it stops**
+
+| Shortcut | Does |
+|---|---|
+| `F8` | Step over (run this line, stop on the next) |
+| `F7` | Step into the method called on this line |
+| `⇧F8` | Step out (finish this method, stop in the caller) |
+| `⌥⌘R` | Resume until the next breakpoint |
+| `⌥F8` | Evaluate expression: run any Java against the paused state |
+| `⌘F8` | Toggle breakpoint |
+
+The *Variables* pane shows every local value; *Frames* shows how you got here (the call stack — click a frame to look at the caller).
+
+**4. Debug a test**
+- In any test file, click the gutter ▶ → *Debug*. Same breakpoints, no browser needed.
+
+**Exercises**
+1. Breakpoint on the first line of `AuthServiceImpl.login`. Sign in from the browser. Step with `F8` and watch `user` and `passwordMatches` in *Variables*. Try a wrong password and an unknown email: see `dummyPasswordHash` being used.
+2. Breakpoint in `RefreshTokenServiceImpl.rotate`. Reload the app in the browser (a reload calls `/api/auth/refresh`). Inspect `current`: its `familyId`, `expiresAt`, `revokedAt`. Then `F7` into `create(...)` and see the new token being made.
+3. While paused in `rotate`, press `⌥F8` and evaluate `hash("hello")`. That's the SHA-256 that ends up in the database.
+4. Breakpoint in `JwtAuthenticationFilter.authenticate`. Debug `AuthFlowIntegrationTest.expiredTokenIs401` and step until the `catch (InvalidTokenException e)` branch: this is why a bad token gives a 401 and not a 500.
+
+### Browser DevTools: see the traffic
+
+Open with `⌥⌘I` in Chrome.
+
+- **Network** tab → filter `auth`. Reload the app: one `refresh` request. Click it → *Headers* shows `Set-Cookie: devpulse_refresh=…; HttpOnly; SameSite=Strict`.
+- **Application** tab → *Cookies* → `http://localhost:8080`: the cookie is there with *HttpOnly* ticked. In the **Console**, `document.cookie` returns `""` — JavaScript can't read it, which is the point.
+- Sign in with a wrong password: the `login` request is a 401 and its *Response* is the JSON `ErrorResponse`.
+
+### VS Code: debug the frontend
+
+**1. Breakpoints in tests (easiest)**
+- *Testing* panel → hover a test → the *Debug Test* icon. Set a breakpoint by clicking the gutter in any `src/` file first.
+
+**2. Breakpoints in the running app**
+- With `npm run dev` running: *Run and Debug* (`⇧⌘D`) → **Debug frontend in Chrome** → ▶ (or `F5`). VS Code opens its own Chrome window attached to the debugger.
+- Set a breakpoint in `src/lib/api/client.ts` inside `authFetch`, then use the app.
+
+| Shortcut | Does |
+|---|---|
+| `F5` | Start / continue |
+| `F10` | Step over |
+| `F11` | Step into |
+| `⇧F11` | Step out |
+| `F9` | Toggle breakpoint |
+
+The *Variables* and *Call Stack* panes work like IntelliJ's. In the *Debug Console* you can type any expression, e.g. `request.url`.
+
+**Exercises**
+1. In `src/features/auth/session.ts`, put one breakpoint on the first line of `refreshSession` and one inside `requestRefresh`. Start **Debug frontend in Chrome** and reload: `refreshSession` is hit twice (React StrictMode runs the start-up effect twice in development) but `requestRefresh` only once. Look at `refreshInFlight` on the second hit to see why.
+2. Breakpoint on `const refreshed = await refreshSession()` in `authFetch`. Debug the test *"refreshes an expired access token and retries the request once"* in `client.test.ts` and step through the 401 → refresh → retry.
+3. In `LoginPage.tsx`, breakpoint inside `onSubmit`. Submit an empty form: it never stops. Why? (Hint: `zodResolver` validates before `onSubmit` runs.)
+
+---
+
 ## Reviewing and committing changes (IntelliJ)
 
 Use IntelliJ for Git: it opens the whole repo (backend, frontend, docs) and has the best diff viewer.
