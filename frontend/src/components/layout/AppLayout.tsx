@@ -9,6 +9,7 @@ import { BackendStatusBadge } from '@/features/system/BackendStatusBadge'
 import { Logo } from './Logo'
 import { SidebarNav } from './SidebarNav'
 import { ThemeToggle } from './ThemeToggle'
+import { UserMenu } from './UserMenu'
 
 /**
  * Shell for every signed-in page: fixed sidebar on desktop, a drawer on
@@ -58,6 +59,7 @@ export function AppLayout() {
           <div className="ml-auto flex items-center gap-2">
             <BackendStatusBadge />
             <ThemeToggle />
+            <UserMenu />
           </div>
         </header>
 

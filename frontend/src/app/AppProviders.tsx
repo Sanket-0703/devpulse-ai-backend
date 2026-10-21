@@ -3,6 +3,7 @@ import { type ReactNode, useState } from 'react'
 
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { AuthProvider } from '@/features/auth/AuthProvider'
 
 import { createQueryClient } from './queryClient'
 import { ThemeProvider } from './theme/ThemeProvider'
@@ -15,7 +16,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
-          {children}
+          <AuthProvider>{children}</AuthProvider>
           <Toaster richColors closeButton />
         </TooltipProvider>
       </ThemeProvider>

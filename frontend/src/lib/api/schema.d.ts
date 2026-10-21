@@ -93,7 +93,31 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Create an account
+         * @description 409 if the email is already registered.
+         */
         post: operations["register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get a new access token
+         * @description Uses the refresh-token cookie, rotates it, and returns a new access token. 401 (and the cookie is cleared) if the session has ended.
+         */
+        post: operations["refresh"];
         delete?: never;
         options?: never;
         head?: never;
@@ -109,6 +133,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Sign out
+         * @description Revokes the refresh token, blocks the access token if sent, clears the cookie. Always 204.
+         */
         post: operations["logout"];
         delete?: never;
         options?: never;
@@ -125,6 +153,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Sign in
+         * @description Returns a short-lived access token and sets the refresh-token cookie.
+         */
         post: operations["login"];
         delete?: never;
         options?: never;
@@ -156,22 +188,6 @@ export interface paths {
             cookie?: never;
         };
         get: operations["searchDocument"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/test": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["test"];
         put?: never;
         post?: never;
         delete?: never;
@@ -372,6 +388,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signed-in user */
+        get: operations["me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/dashboard": {
         parameters: {
             query?: never;
@@ -461,14 +494,30 @@ export interface components {
             email: string;
             password: string;
         };
+        UserResponse: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            email: string;
+            /** @enum {string} */
+            role: "ROLE_USER" | "ROLE_ADMIN";
+        };
+        AuthResponse: {
+            /** @description Send as 'Authorization: Bearer <accessToken>' */
+            accessToken: string;
+            /** @example Bearer */
+            tokenType: string;
+            /**
+             * Format: int64
+             * @description Seconds until the access token expires
+             */
+            expiresIn: number;
+            user: components["schemas"]["UserResponse"];
+        };
         LoginRequest: {
             /** Format: email */
             email: string;
             password: string;
-        };
-        LoginResponse: {
-            token?: string;
-            type?: string;
         };
         AIReviewFinding: {
             severity?: string;
@@ -586,17 +635,17 @@ export interface components {
         };
         ErrorResponse: {
             /** Format: date-time */
-            timestamp?: string;
+            timestamp: string;
             /** Format: int32 */
-            status?: number;
-            error?: string;
-            message?: string;
-            path?: string;
+            status: number;
+            error: string;
+            message: string;
+            path: string;
             errors?: components["schemas"]["FieldError"][];
         };
         FieldError: {
-            field?: string;
-            message?: string;
+            field: string;
+            message: string;
         };
     };
     responses: never;
@@ -759,13 +808,33 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserResponse"];
+                };
+            };
+        };
+    };
+    refresh: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
             /** @description OK */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": string;
+                    "*/*": components["schemas"]["AuthResponse"];
                 };
             };
         };
@@ -807,7 +876,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["LoginResponse"];
+                    "*/*": components["schemas"]["AuthResponse"];
                 };
             };
         };
@@ -841,26 +910,6 @@ export interface operations {
             query: {
                 query: string;
             };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": string;
-                };
-            };
-        };
-    };
-    test: {
-        parameters: {
-            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -1179,6 +1228,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": string;
+                };
+            };
+        };
+    };
+    me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserResponse"];
                 };
             };
         };

@@ -2,14 +2,21 @@ import '@testing-library/jest-dom/vitest'
 
 import { cleanup } from '@testing-library/react'
 
+import { setAccessToken } from '@/features/auth/session'
+
+import { resetAuthMock } from './authMock'
 import { server } from './server'
 
 // MSW intercepts fetch() so tests never hit the real backend.
 // Unmocked requests fail the test, so a missing handler is obvious.
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }))
+// Every test starts signed in as DEMO_USER unless it calls resetAuthMock({ signedIn: false }).
+beforeEach(() => resetAuthMock())
 afterEach(() => {
   cleanup()
   server.resetHandlers()
+  setAccessToken(null)
+  localStorage.clear()
 })
 afterAll(() => server.close())
 

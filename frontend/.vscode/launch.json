@@ -1,0 +1,14 @@
+{
+  // Run → Start Debugging (F5) with `npm run dev` running: opens Chrome with
+  // VS Code attached, so breakpoints set in src/ pause the app.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Debug frontend in Chrome",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}"
+    }
+  ]
+}
