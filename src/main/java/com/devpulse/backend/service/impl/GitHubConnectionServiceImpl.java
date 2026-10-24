@@ -22,6 +22,7 @@ import com.devpulse.backend.service.GitHubOAuthStateService;
 import com.devpulse.backend.service.GitHubOAuthStateService.Flow;
 import com.devpulse.backend.service.GitHubTokenService;
 import com.devpulse.backend.service.RefreshTokenService;
+import com.devpulse.backend.service.RepositorySyncService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -48,6 +49,7 @@ public class GitHubConnectionServiceImpl implements GitHubConnectionService {
     private final GitHubAccountRepository githubAccountRepository;
     private final UserRepository userRepository;
     private final RefreshTokenService refreshTokenService;
+    private final RepositorySyncService syncService;
     private final TransactionTemplate transaction;
     private final Clock clock;
 
@@ -60,6 +62,7 @@ public class GitHubConnectionServiceImpl implements GitHubConnectionService {
             GitHubAccountRepository githubAccountRepository,
             UserRepository userRepository,
             RefreshTokenService refreshTokenService,
+            RepositorySyncService syncService,
             PlatformTransactionManager transactionManager,
             Clock clock) {
 
@@ -71,6 +74,7 @@ public class GitHubConnectionServiceImpl implements GitHubConnectionService {
         this.githubAccountRepository = githubAccountRepository;
         this.userRepository = userRepository;
         this.refreshTokenService = refreshTokenService;
+        this.syncService = syncService;
         this.transaction = new TransactionTemplate(transactionManager);
         this.clock = clock;
     }
@@ -130,17 +134,30 @@ public class GitHubConnectionServiceImpl implements GitHubConnectionService {
                 return new Failed("invalid_state");
             }
             GitHubIdentity identity = fetchIdentity(params.code());
-            return transaction.execute(tx -> refreshExistingLink(identity));
+            return syncIfLinked(transaction.execute(tx -> refreshExistingLink(identity)), identity);
         }
 
         // HTTP calls to GitHub happen outside any database transaction, so a
         // slow GitHub never holds a database connection.
         GitHubIdentity identity = fetchIdentity(params.code());
 
-        return switch (state.get().flow()) {
+        CallbackResult result = switch (state.get().flow()) {
             case SIGN_IN -> signIn(identity);
             case CONNECT -> transaction.execute(tx -> connect(state.get().userId(), identity));
         };
+        return syncIfLinked(result, identity);
+    }
+
+    /**
+     * Once the link is saved (transaction committed), start pulling the
+     * user's repositories in the background, so they're there by the time
+     * the user opens the Repositories page.
+     */
+    private CallbackResult syncIfLinked(CallbackResult result, GitHubIdentity identity) {
+        if (result instanceof SignedIn || result instanceof Connected) {
+            syncService.syncAfterConnect(identity.user().getId());
+        }
+        return result;
     }
 
     /** Everything we need from GitHub about the person who just authorized. */

@@ -3,6 +3,8 @@ package com.devpulse.backend.client.impl;
 import com.devpulse.backend.client.GitHubApiClient;
 import com.devpulse.backend.config.GitHubProperties;
 import com.devpulse.backend.dto.github.GitHubEmailResponse;
+import com.devpulse.backend.dto.github.GitHubInstallationRepositoriesResponse;
+import com.devpulse.backend.dto.github.GitHubInstallationTokenResponse;
 import com.devpulse.backend.dto.github.GitHubInstallationsResponse;
 import com.devpulse.backend.dto.github.GitHubPullRequestResponse;
 import com.devpulse.backend.dto.github.GitHubRepositoryResponse;
@@ -68,6 +70,29 @@ public class GitHubApiClientImpl implements GitHubApiClient {
                 .headers(h -> h.setBearerAuth(accessToken))
                 .retrieve()
                 .body(GitHubInstallationsResponse.class));
+    }
+
+    @Override
+    public GitHubInstallationTokenResponse createInstallationToken(String appJwt, long installationId) {
+        return call(() -> restClient.post()
+                .uri("/app/installations/{id}/access_tokens", installationId)
+                .headers(h -> h.setBearerAuth(appJwt))
+                .retrieve()
+                .body(GitHubInstallationTokenResponse.class));
+    }
+
+    @Override
+    public GitHubInstallationRepositoriesResponse listInstallationRepositories(
+            String installationToken, int page, int perPage) {
+
+        return call(() -> restClient.get()
+                .uri(uri -> uri.path("/installation/repositories")
+                        .queryParam("page", page)
+                        .queryParam("per_page", perPage)
+                        .build())
+                .headers(h -> h.setBearerAuth(installationToken))
+                .retrieve()
+                .body(GitHubInstallationRepositoriesResponse.class));
     }
 
     @Override

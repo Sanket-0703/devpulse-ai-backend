@@ -16,6 +16,9 @@ public interface RedisService {
 
     void delete(String key);
 
+    /** Sets the key only if it doesn't exist (Redis SET NX); true if it was set. For locks and cooldowns. */
+    boolean setIfAbsent(String key, String value, Duration ttl);
+
     /** Atomically reads and removes a key (Redis GETDEL): for single-use values. */
     String getAndDelete(String key);
 

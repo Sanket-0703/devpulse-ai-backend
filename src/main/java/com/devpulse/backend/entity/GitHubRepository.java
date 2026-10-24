@@ -1,38 +1,47 @@
 package com.devpulse.backend.entity;
 
 import com.devpulse.backend.common.BaseEntity;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.OneToMany;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-import java.time.LocalDateTime;
-
+/**
+ * A repository the DevPulse app is installed on, as seen by one DevPulse
+ * user's GitHub account. Kept in sync with GitHub by RepositorySyncService.
+ */
 @Entity
-@Table(name = "github_repositories")
+@Table(
+        name = "github_repositories",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_github_repositories_account_repo",
+                columnNames = {"github_account_id", "github_id"})
+)
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class GitHubRepository extends BaseEntity {
 
-    @Column(nullable = false, unique = true)
+    /** GitHub's numeric repository id (stable across renames). */
+    @Column(nullable = false)
     private Long githubId;
 
     @Column(nullable = false)
     private String name;
 
+    /** owner/name, e.g. "Sanket-0703/devpulse-ai-backend". */
     @Column(nullable = false)
     private String fullName;
 
@@ -54,17 +63,21 @@ public class GitHubRepository extends BaseEntity {
     @Column(nullable = false)
     private String defaultBranch;
 
-    @Column
     private String language;
 
+    /** Last push to any branch, from GitHub; used to sort by recent activity. */
+    private Instant pushedAt;
+
+    /** Last time a sync saw this repository. */
     @Column(nullable = false)
-    private LocalDateTime syncedAt;
+    private Instant syncedAt;
+
+    /** Whether DevPulse reviews this repository's pull requests. Off until the user opts in. */
+    @Column(nullable = false)
+    private boolean reviewEnabled;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-            name = "github_account_id",
-            nullable = false
-    )
+    @JoinColumn(name = "github_account_id", nullable = false)
     private GitHubAccount githubAccount;
 
     @OneToMany(
@@ -76,16 +89,12 @@ public class GitHubRepository extends BaseEntity {
     private List<PullRequest> pullRequests = new ArrayList<>();
 
     public void addPullRequest(PullRequest pullRequest) {
-
         pullRequests.add(pullRequest);
-
         pullRequest.setGithubRepository(this);
     }
 
     public void removePullRequest(PullRequest pullRequest) {
-
         pullRequests.remove(pullRequest);
-
         pullRequest.setGithubRepository(null);
     }
 }
