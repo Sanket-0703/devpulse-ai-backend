@@ -9,7 +9,7 @@ Ground rules
 - **Mock AI by default.** No paid AI calls unless you approve them. OpenAI is the real provider (per the resume).
 - **Tests as we go.** JUnit + Mockito for every backend feature, with a JaCoCo gate building up to **80%+ coverage**. Every screen gets component tests (Vitest + React Testing Library). GitHub calls are tested against WireMock stubs, never the real GitHub.
 - **Learn the IDEs on the way.** IntelliJ IDEA for the backend, VS Code for the frontend. Each level teaches the IDE features that level needs; the running guide is [IDE_GUIDE.md](IDE_GUIDE.md).
-- **Every level ends with its own explainer.** `docs/levels/LEVEL_N.md` (and PDF) walks through every page, class and function built in that level, how the requests flow, and why it was built that way. Level docs: [Level 1](../levels/LEVEL_1.md) · [Level 2](../levels/LEVEL_2.md).
+- **Every level ends with its own explainer.** `docs/levels/LEVEL_N.md` (and PDF) walks through every page, class and function built in that level, how the requests flow, and why it was built that way. Level docs: [Level 1](../levels/LEVEL_1.md) · [Level 2](../levels/LEVEL_2.md) · [Level 3](../levels/LEVEL_3.md).
 - **Supported languages** for reviews, security rules and code search: **Java, JavaScript/TypeScript, Python**. Other files are skipped.
 
 ## Tech stack (from the resume)
@@ -83,12 +83,18 @@ Legend: `[x]` done · `[ ]` to do · **BE** backend · **FE** frontend
 
 **Check:** register → login → land on the dashboard → refresh keeps you logged in → logout → protected page sends you back to login. ✅ Done in the browser against the real backend.
 
-## Level 3 — Profile & settings
+## Level 3 — Profile & settings ✅ (IDE refactoring exercises are yours to do)
 
-- [ ] BE: get/update profile, change password (+ tests)
-- [ ] FE: Settings → Profile and Security pages
+- [x] BE: `GET/PUT /api/profile` (name + email; changing the email needs the current password), `PUT /api/profile/password`, `POST /api/auth/logout-all`
+- [x] BE: password change and "sign out everywhere" end other sessions immediately — refresh tokens revoked **and** older access tokens rejected via a per-user cutoff (`users.tokens_valid_after`, Flyway V4); the device that changed the password gets a fresh session
+- [x] BE: wrong current password = 400 field error (not 401); audit timestamps (`created_at`/`updated_at`) filled automatically and stored in UTC
+- [x] BE: old `UserService`/`ProfileResponse` replaced by `ProfileService` + `UserResponse`; tests — 73 backend tests, coverage 42% → 47%
+- [x] FE: Settings with Profile and Security tabs; "Member since"; save only when changed; password field appears only when the email changes; confirm dialog for "Sign out everywhere"
+- [x] FE: shared server-field-error helper; 11 new tests (33 total)
+- [x] Level doc: [LEVEL_3.md](../levels/LEVEL_3.md)
+- [ ] IDE: refactoring tools and Git history in IntelliJ and VS Code ([IDE_GUIDE.md](IDE_GUIDE.md), Level 3)
 
-**Check:** change name and password in the browser, log in again with the new password.
+**Check:** change name and password in the browser, log in again with the new password. ✅ Done against the real backend — plus a second device (signed in from the terminal) was signed out by the password change, and "Sign out everywhere" ended the browser session.
 
 ## Level 4 — Connect GitHub
 

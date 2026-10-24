@@ -166,6 +166,72 @@ The *Variables* and *Call Stack* panes work like IntelliJ's. In the *Debug Conso
 
 ---
 
+## Level 3 — Refactoring safely and reading history
+
+Level 3 replaced `UserService` with `ProfileService`, extracted `EmailAddresses.normalize`, and pulled the field-error code out of `RegisterPage` into `applyServerFieldErrors`. That is everyday refactoring: let the IDE do it, never search-and-replace by hand.
+
+### IntelliJ: refactoring
+
+All refactorings are under `⌃T` (*Refactor This*), which shows only what makes sense where your cursor is.
+
+| Shortcut | Refactoring | What it does |
+|---|---|---|
+| `⇧F6` | Rename | Renames a class, method, variable or file and every usage (including tests and Spring bean names) |
+| `⌘F6` | Change Signature | Add, remove or reorder parameters; updates every caller |
+| `⌥⌘M` | Extract Method | Turns the selected lines into a new method |
+| `⌥⌘V` | Extract Variable | Names the selected expression |
+| `⌥⌘C` | Extract Constant | e.g. turns `"An account with this email already exists"` into a `static final` |
+| `⌥⌘N` | Inline | The opposite of extract |
+| `⌘⌫` | Safe Delete | Deletes only if nothing uses it, or shows you what does |
+| `F6` | Move | Moves a class to another package and fixes imports |
+
+Before any refactoring IntelliJ may show a **preview** of every change; review it, then *Do Refactor*. `⌘Z` undoes the whole refactoring at once.
+
+**Find things**
+
+| Shortcut | Does |
+|---|---|
+| `⇧⌘F` | Find in files (text search across the project) |
+| `⌘F12` | File structure: jump to a method in the current file |
+| `⇧⌘E` | Recent locations: places you were editing, with a code preview |
+| `⌥⌘B` | Go to implementation (from `ProfileService` to `ProfileServiceImpl`) |
+
+### IntelliJ: Git history
+
+- **Annotate (blame):** right-click the line-number gutter → *Annotate with Git Blame*. Each line shows the commit and author; click one to see that commit.
+- **File history:** right-click a file → *Git → Show History*.
+- **Compare:** right-click → *Git → Compare with Branch…* (e.g. with `main`).
+- **Local History:** right-click → *Local History → Show History*. IntelliJ keeps its own history of every save, even uncommitted. A safety net if you ever lose work.
+
+**Exercises**
+1. Open `ProfileServiceImpl.updateProfile`. Select the `if (!newEmail.equals(user.getEmail())) { … }` block and press `⌥⌘M` to extract it into `changeEmail(user, newEmail, currentPassword)`. Run `ProfileServiceImplTest` (`⌃⇧R` in the test file): still green. Then `⌘Z` to undo, or keep it if you like it.
+2. In `AuthServiceImpl`, put the cursor on `endAllSessions` and press `⇧F6` → rename it to `signOutAllDevices`. Watch the preview update every caller. Undo with `⌘Z`.
+3. Put the cursor on `ProfileService` (the interface) and press `⌥⌘B` to jump to its implementation.
+4. Open `SecurityConfig.java` → *Annotate with Git Blame*. Which lines came from the Level 1 commit, which from Level 2?
+5. Right-click `JwtAuthenticationFilter.java` → *Git → Show History*. Click each commit to see how the filter evolved from "throws a 500" to "never rejects".
+
+### VS Code: refactoring and search
+
+| Shortcut | Does |
+|---|---|
+| `F2` | Rename symbol everywhere (across files, imports included) |
+| `⌃⇧R` | Refactor menu: extract function/constant, move to a new file… |
+| `⌘.` | Quick fix (also offers refactors for the selection) |
+| `⇧⌘F` | Search across files (with regex and include/exclude patterns) |
+| `⌘T` | Go to a symbol anywhere in the project |
+| `⇧⌘O` | Go to a symbol in the current file |
+| `⌃-` | Go back to where you were |
+
+**Git in VS Code:** the *Timeline* panel at the bottom of the Explorer shows a file's commit history; click an entry for its diff. In the Source Control view, right-click a changed file → *Open Changes*.
+
+**Exercises**
+1. Open `src/lib/forms.ts`, put the cursor on `applyServerFieldErrors` and press `F2` → rename it to `showServerFieldErrors`. Four files change (`forms.ts`, `RegisterPage.tsx` and the two settings pages). Run the tests from the *Testing* panel, then `⌘Z` in each file (or *Source Control → Discard Changes*).
+2. `⌘T` → type `SettingsLayout` → Enter. Then `⇧⌘O` to see its parts.
+3. In `ProfileSettingsPage.tsx`, select the date formatting `dateFormat.format(new Date(user.createdAt))`, press `⌃⇧R` → *Extract to function in module scope*, name it `memberSince`. Undo when done.
+4. `⇧⌘F` → search `Session has ended`. It appears in the backend filter and in tests; that's how you find every place a message is used before changing it.
+
+---
+
 ## Reviewing and committing changes (IntelliJ)
 
 Use IntelliJ for Git: it opens the whole repo (backend, frontend, docs) and has the best diff viewer.
