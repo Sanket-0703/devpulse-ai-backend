@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.Instant;
 
 /**
  * Authenticates requests that carry "Authorization: Bearer <access token>".
@@ -71,6 +72,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             CustomUserPrincipal principal = customUserDetailsService.loadUserById(claims.userId());
+
+            // Issued before a password change or "sign out everywhere".
+            Instant cutoff = principal.getTokensValidAfter();
+            if (cutoff != null && claims.issuedAt().isBefore(cutoff)) {
+                request.setAttribute(AUTH_ERROR_ATTRIBUTE, "Session has ended, please sign in again");
+                return;
+            }
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());

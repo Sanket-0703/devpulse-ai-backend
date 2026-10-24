@@ -279,6 +279,7 @@ class AuthFlowIntegrationTest extends AbstractIntegrationTest {
                 .issuer("devpulse-ai")
                 .subject("999999999")
                 .id(UUID.randomUUID().toString())
+                .issuedAt(new Date())
                 .expiration(Date.from(Instant.now().plusSeconds(600)))
                 .signWith(Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8)))
                 .compact();

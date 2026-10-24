@@ -67,6 +67,14 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, "Validation failed", request, errors);
     }
 
+    @ExceptionHandler(FieldValidationException.class)
+    public ResponseEntity<ErrorResponse> handleFieldValidation(
+            FieldValidationException ex, HttpServletRequest request) {
+
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request,
+                List.of(new ErrorResponse.FieldError(ex.getField(), ex.getMessage())));
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleUnreadableBody(
             HttpMessageNotReadableException ex, HttpServletRequest request) {

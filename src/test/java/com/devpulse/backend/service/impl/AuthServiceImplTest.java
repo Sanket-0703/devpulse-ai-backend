@@ -1,11 +1,13 @@
 package com.devpulse.backend.service.impl;
 
+import com.devpulse.backend.dto.ChangePasswordRequest;
 import com.devpulse.backend.dto.LoginRequest;
 import com.devpulse.backend.dto.RegisterRequest;
 import com.devpulse.backend.dto.UserResponse;
 import com.devpulse.backend.entity.Role;
 import com.devpulse.backend.entity.User;
 import com.devpulse.backend.exception.EmailAlreadyExistsException;
+import com.devpulse.backend.exception.FieldValidationException;
 import com.devpulse.backend.exception.InvalidCredentialsException;
 import com.devpulse.backend.exception.InvalidRefreshTokenException;
 import com.devpulse.backend.repository.UserRepository;
@@ -82,7 +84,10 @@ class AuthServiceImplTest {
         assertThat(saved.getValue().getName()).isEqualTo("Ada Lovelace");
         assertThat(saved.getValue().getPassword()).isEqualTo("bcrypt-hash");
         assertThat(saved.getValue().getRole()).isEqualTo(Role.ROLE_USER);
-        assertThat(response).isEqualTo(new UserResponse(1L, "Ada Lovelace", "ada@example.com", Role.ROLE_USER));
+        assertThat(response.id()).isEqualTo(1L);
+        assertThat(response.name()).isEqualTo("Ada Lovelace");
+        assertThat(response.email()).isEqualTo("ada@example.com");
+        assertThat(response.role()).isEqualTo(Role.ROLE_USER);
     }
 
     @Test
@@ -155,7 +160,7 @@ class AuthServiceImplTest {
     void logoutRevokesTheRefreshTokenAndBlocksTheAccessTokenUntilItExpires() {
 
         when(jwtService.parse("jwt")).thenReturn(
-                new JwtService.AccessTokenClaims("jti-1", 1L, NOW.plus(Duration.ofMinutes(10))));
+                new JwtService.AccessTokenClaims("jti-1", 1L, NOW.minus(Duration.ofMinutes(5)), NOW.plus(Duration.ofMinutes(10))));
 
         authService.logout("raw-refresh", "jwt");
 
@@ -171,6 +176,75 @@ class AuthServiceImplTest {
         authService.logout(null, "expired");
 
         verifyNoInteractions(jwtBlacklistService, refreshTokenService);
+    }
+
+    @Test
+    void changePasswordRejectsAWrongCurrentPassword() {
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user()));
+        when(passwordEncoder.matches("wrong", "bcrypt-hash")).thenReturn(false);
+
+        assertThatThrownBy(() -> authService.changePassword(1L, changePassword("wrong", "NewPassw0rd!")))
+                .isInstanceOfSatisfying(FieldValidationException.class,
+                        e -> assertThat(e.getField()).isEqualTo("currentPassword"));
+
+        verifyNoInteractions(refreshTokenService);
+    }
+
+    @Test
+    void changePasswordRejectsReusingTheCurrentPassword() {
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user()));
+        when(passwordEncoder.matches("Passw0rd!23", "bcrypt-hash")).thenReturn(true);
+
+        assertThatThrownBy(() -> authService.changePassword(1L, changePassword("Passw0rd!23", "Passw0rd!23")))
+                .isInstanceOfSatisfying(FieldValidationException.class,
+                        e -> assertThat(e.getField()).isEqualTo("newPassword"));
+    }
+
+    @Test
+    void changePasswordEndsOtherSessionsAndStartsANewOne() {
+
+        User user = user();
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("Passw0rd!23", "bcrypt-hash")).thenReturn(true);
+        when(passwordEncoder.matches("NewPassw0rd!", "bcrypt-hash")).thenReturn(false);
+        when(passwordEncoder.encode("NewPassw0rd!")).thenReturn("new-hash");
+        IssuedRefreshToken refresh = new IssuedRefreshToken(9L, "raw", NOW.plus(Duration.ofDays(7)));
+        when(refreshTokenService.issue(user)).thenReturn(refresh);
+        when(jwtService.issue(user)).thenReturn(new JwtService.IssuedAccessToken("jwt", NOW.plusSeconds(900)));
+        when(jwtService.getAccessTokenTtl()).thenReturn(Duration.ofMinutes(15));
+
+        AuthResult result = authService.changePassword(1L, changePassword("Passw0rd!23", "NewPassw0rd!"));
+
+        assertThat(user.getPassword()).isEqualTo("new-hash");
+        assertThat(user.getTokensValidAfter()).isEqualTo(NOW);
+        verify(refreshTokenService).revokeAll(1L);
+        assertThat(result.refreshToken()).isEqualTo(refresh);
+        assertThat(result.response().accessToken()).isEqualTo("jwt");
+    }
+
+    @Test
+    void logoutEverywhereSetsTheCutoffToWholeSeconds() {
+
+        // The clock has milliseconds; JWT "iat" doesn't, so the cutoff mustn't either.
+        AuthServiceImpl service = new AuthServiceImpl(userRepository, passwordEncoder, jwtService,
+                refreshTokenService, jwtBlacklistService,
+                Clock.fixed(NOW.plusMillis(750), ZoneOffset.UTC));
+        User user = user();
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        service.logoutEverywhere(1L);
+
+        assertThat(user.getTokensValidAfter()).isEqualTo(NOW);
+        verify(refreshTokenService).revokeAll(1L);
+    }
+
+    private static ChangePasswordRequest changePassword(String current, String next) {
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        request.setCurrentPassword(current);
+        request.setNewPassword(next);
+        return request;
     }
 
     private static User user() {

@@ -2,8 +2,8 @@ package com.devpulse.backend;
 
 import com.devpulse.backend.dto.AuthResponse;
 import com.devpulse.backend.dto.LoginRequest;
-import com.devpulse.backend.dto.ProfileResponse;
 import com.devpulse.backend.dto.RegisterRequest;
+import com.devpulse.backend.dto.UserResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -57,7 +57,7 @@ class BackendApplicationIntegrationTest extends AbstractIntegrationTest {
                 Integer.class
         );
 
-        assertThat(versions).containsExactly("1", "2", "3");
+        assertThat(versions).containsExactly("1", "2", "3", "4");
         assertThat(vectorExtensions).isEqualTo(1);
     }
 
@@ -92,12 +92,12 @@ class BackendApplicationIntegrationTest extends AbstractIntegrationTest {
         headers.setBearerAuth(loggedIn.getBody().accessToken());
         HttpEntity<Void> authenticated = new HttpEntity<>(headers);
 
-        ResponseEntity<ProfileResponse> profile = restTemplate.exchange(
-                "/api/profile", HttpMethod.GET, authenticated, ProfileResponse.class);
+        ResponseEntity<UserResponse> profile = restTemplate.exchange(
+                "/api/profile", HttpMethod.GET, authenticated, UserResponse.class);
 
         assertThat(profile.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(profile.getBody()).isNotNull();
-        assertThat(profile.getBody().getEmail()).isEqualTo(email);
+        assertThat(profile.getBody().email()).isEqualTo(email);
 
         ResponseEntity<Void> loggedOut = restTemplate.exchange(
                 "/api/auth/logout", HttpMethod.POST, authenticated, Void.class);

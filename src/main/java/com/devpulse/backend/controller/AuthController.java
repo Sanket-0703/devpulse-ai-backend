@@ -83,6 +83,23 @@ public class AuthController {
                 .build();
     }
 
+    @PostMapping("/logout-all")
+    @Operation(summary = "Sign out everywhere",
+            description = "Ends every session of this account on every device, including this one.")
+    public ResponseEntity<Void> logoutEverywhere(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            HttpServletRequest request) {
+
+        authService.logoutEverywhere(principal.getId());
+        // The cutoff has whole-second precision; also block this request's
+        // own token in case it was issued within the same second.
+        authService.logout(null, bearerToken(request));
+
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookies.clear())
+                .build();
+    }
+
     @GetMapping("/me")
     @Operation(summary = "The signed-in user")
     public UserResponse me(@AuthenticationPrincipal CustomUserPrincipal principal) {

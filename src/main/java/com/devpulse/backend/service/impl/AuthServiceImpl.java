@@ -1,12 +1,15 @@
 package com.devpulse.backend.service.impl;
 
+import com.devpulse.backend.common.EmailAddresses;
 import com.devpulse.backend.dto.AuthResponse;
+import com.devpulse.backend.dto.ChangePasswordRequest;
 import com.devpulse.backend.dto.LoginRequest;
 import com.devpulse.backend.dto.RegisterRequest;
 import com.devpulse.backend.dto.UserResponse;
 import com.devpulse.backend.entity.Role;
 import com.devpulse.backend.entity.User;
 import com.devpulse.backend.exception.EmailAlreadyExistsException;
+import com.devpulse.backend.exception.FieldValidationException;
 import com.devpulse.backend.exception.InvalidCredentialsException;
 import com.devpulse.backend.exception.InvalidRefreshTokenException;
 import com.devpulse.backend.exception.ResourceNotFoundException;
@@ -23,7 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Duration;
-import java.util.Locale;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 @Service
 public class AuthServiceImpl implements AuthService {
@@ -63,7 +67,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public UserResponse register(RegisterRequest request) {
 
-        String email = normalizeEmail(request.getEmail());
+        String email = EmailAddresses.normalize(request.getEmail());
 
         if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new EmailAlreadyExistsException("An account with this email already exists");
@@ -88,7 +92,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public AuthResult login(LoginRequest request) {
 
-        User user = userRepository.findByEmailIgnoreCase(normalizeEmail(request.getEmail()))
+        User user = userRepository.findByEmailIgnoreCase(EmailAddresses.normalize(request.getEmail()))
                 .orElse(null);
 
         String hashToCheck = user != null ? user.getPassword() : dummyPasswordHash;
@@ -138,11 +142,53 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
+    public AuthResult changePassword(Long userId, ChangePasswordRequest request) {
+
+        User user = findUser(userId);
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new FieldValidationException("currentPassword", "Current password is incorrect");
+        }
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new FieldValidationException("newPassword", "New password must be different from the current one");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        endAllSessions(user);
+
+        // Keep this device signed in with a brand-new session.
+        return issueTokens(user, refreshTokenService.issue(user));
+    }
+
+    @Override
+    @Transactional
+    public void logoutEverywhere(Long userId) {
+        endAllSessions(findUser(userId));
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public UserResponse currentUser(Long userId) {
 
+        return UserResponse.from(findUser(userId));
+    }
+
+    /**
+     * Revokes every refresh token and sets the access-token cutoff, so
+     * tokens already handed out stop working right away instead of in up to
+     * 15 minutes. Truncated to whole seconds because JWT "iat" has no
+     * milliseconds: a token issued later in this same request (same second)
+     * must still pass the filter's {@code issuedAt < cutoff} check.
+     */
+    private void endAllSessions(User user) {
+        Instant now = clock.instant().truncatedTo(ChronoUnit.SECONDS);
+        user.setTokensValidAfter(now);
+        refreshTokenService.revokeAll(user.getId());
+    }
+
+    private User findUser(Long userId) {
         return userRepository.findById(userId)
-                .map(UserResponse::from)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
@@ -160,7 +206,4 @@ public class AuthServiceImpl implements AuthService {
         return new AuthResult(response, refreshToken);
     }
 
-    private static String normalizeEmail(String email) {
-        return email.trim().toLowerCase(Locale.ROOT);
-    }
 }

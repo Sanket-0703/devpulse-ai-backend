@@ -77,9 +77,15 @@ public class JwtService {
         try {
             Claims claims = parser.parseSignedClaims(token).getPayload();
 
+            // We always set "iat"; the session cutoff check needs it.
+            if (claims.getIssuedAt() == null) {
+                throw new InvalidTokenException("Access token is invalid");
+            }
+
             return new AccessTokenClaims(
                     claims.getId(),
                     Long.parseLong(claims.getSubject()),
+                    claims.getIssuedAt().toInstant(),
                     claims.getExpiration().toInstant()
             );
 
@@ -100,6 +106,7 @@ public class JwtService {
     public record IssuedAccessToken(String value, Instant expiresAt) {
     }
 
-    public record AccessTokenClaims(String tokenId, Long userId, Instant expiresAt) {
+    /** {@code issuedAt} has whole-second precision (JWT "iat" is in seconds). */
+    public record AccessTokenClaims(String tokenId, Long userId, Instant issuedAt, Instant expiresAt) {
     }
 }

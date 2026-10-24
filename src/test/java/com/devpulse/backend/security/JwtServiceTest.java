@@ -44,6 +44,7 @@ class JwtServiceTest {
         JwtService.AccessTokenClaims claims = jwtService.parse(issued.value());
 
         assertThat(claims.userId()).isEqualTo(42L);
+        assertThat(claims.issuedAt()).isEqualTo(NOW);
         assertThat(claims.tokenId()).isNotBlank();
         assertThat(claims.expiresAt()).isEqualTo(NOW.plus(Duration.ofMinutes(15)));
         assertThat(issued.expiresAt()).isEqualTo(claims.expiresAt());
@@ -123,6 +124,22 @@ class JwtServiceTest {
                 .compact();
 
         assertThatThrownBy(() -> jwtService.parse(legacy)).isInstanceOf(InvalidTokenException.class);
+    }
+
+    @Test
+    void tokenWithoutIssuedAtIsRejected() {
+
+        // The session cutoff (Level 3) compares "iat", so every token must have one.
+        String noIat = Jwts.builder()
+                .issuer(JwtService.ISSUER)
+                .subject("42")
+                .expiration(Date.from(NOW.plusSeconds(600)))
+                .signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))
+                .compact();
+
+        assertThatThrownBy(() -> jwtService.parse(noIat))
+                .isInstanceOf(InvalidTokenException.class)
+                .hasMessage("Access token is invalid");
     }
 
     @Test

@@ -14,6 +14,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -34,6 +36,14 @@ public class User extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
+
+    /**
+     * Access tokens issued before this instant are rejected, even if not yet
+     * expired. Set when the password changes or the user signs out
+     * everywhere. Null = no cutoff.
+     */
+    @Column(name = "tokens_valid_after")
+    private Instant tokensValidAfter;
 
     @OneToOne(
             mappedBy = "user",
