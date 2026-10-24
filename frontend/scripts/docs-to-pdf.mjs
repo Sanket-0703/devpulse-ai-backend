@@ -17,7 +17,9 @@ const OUT = join(REPO, 'docs/pdf')
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 
 const DEFAULT_DOCS = [
-  'docs/LOCAL_DEV.md',
+  ...readdirSync(join(REPO, 'docs'))
+    .filter((f) => f.endsWith('.md'))
+    .map((f) => `docs/${f}`),
   ...readdirSync(join(REPO, 'docs/project-restart'))
     .filter((f) => f.endsWith('.md'))
     .map((f) => `docs/project-restart/${f}`),

@@ -232,6 +232,71 @@ Before any refactoring IntelliJ may show a **preview** of every change; review i
 
 ---
 
+## Level 4 — Calling the API by hand and looking inside the database
+
+Level 4 is about things you can't see in the UI: OAuth redirects, request headers, and encrypted columns. Three tools make them visible.
+
+### IntelliJ HTTP Client: run API requests from a file
+
+`http/devpulse.http` in the repo holds ready-made requests: sign in, `/me`, refresh, GitHub status, start connecting, the sign-in redirect, a bad token.
+
+1. Open `http/devpulse.http`. At the top of the editor choose the **local** environment (it comes from `http/http-client.env.json`).
+2. Replace `@email` / `@password` with your own test account (don't commit them).
+3. Click the green ▶ next to **Sign in**. The response opens below; the `> {% … %}` script saves the access token into `{{accessToken}}`.
+4. Run **Who am I?**, then **GitHub connection status**: both reuse the saved token.
+
+Cookies are kept between requests like in a browser, so **refresh** works after **Sign in**. `# @no-redirect` on the GitHub request shows the raw `302` and its `Location` header instead of following it.
+
+| Shortcut | Does |
+|---|---|
+| `⌃⏎` (in a request) | Run this request |
+| `⌥⏎` | Convert to cURL, or add an environment variable |
+| `⌘N` in a `.http` file | Insert a request template |
+
+*Previous responses* are saved under `.idea/httpRequests/`; IntelliJ lists them in the response panel's history.
+
+### IntelliJ Database tool: see the encrypted tokens
+
+1. Open the **Database** tool window (right sidebar; or *View → Tool Windows → Database*).
+2. **+** → **Data Source** → **PostgreSQL**. Host `localhost`, port `5433`, user and password from `POSTGRES_USER` / `POSTGRES_PASSWORD` in `.env`, database `devpulse_ai`. *Test Connection* (it may offer to download the driver), then **OK**.
+3. Expand `devpulse_ai → public → tables`. Double-click a table to browse it; `⌘⏎` runs SQL in a console (`⇧⌘F10` opens a new one).
+
+If your IntelliJ subscription doesn't include the Database tool or the HTTP Client, use `psql` and `curl` in the terminal instead. Same results, just less comfortable.
+
+**Exercises**
+1. In `devpulse.http`, run **Sign in**, then **A bad token…**: you get the JSON 401 from `JsonSecurityErrorHandler`. Then run **"Sign in with GitHub"** and read the `Location` header: the GitHub authorize URL with `client_id`, `redirect_uri` and a random `state`.
+2. Run **Sign in** twice, then in the Database console:
+   ```sql
+   select id, family_id, revoked_at is not null as revoked, replaced_by_id from refresh_tokens order by id desc limit 5;
+   ```
+   Each sign-in started a new family; run **refresh** and look again to see the rotation (`replaced_by_id`).
+3. After connecting GitHub (end of this level), run:
+   ```sql
+   select username, left(access_token, 20) as stored_token, installation_id from github_accounts;
+   ```
+   `stored_token` starts with `v1:` and is unreadable: that's `TokenEncryptor` at work. The real token never leaves the backend.
+4. Set a breakpoint in `GitHubConnectionServiceImpl.processCallback`, start the backend in debug mode (`⌃D`), and click **Connect GitHub** in the app. Step through `fetchIdentity` and the `switch` on the flow.
+
+### Browser DevTools: follow the OAuth redirects
+
+1. Open DevTools (`⌥⌘I`) → **Network** → tick **Preserve log** (otherwise the log is cleared on every redirect).
+2. Click **Continue with GitHub** on the sign-in page.
+3. You'll see the chain: `localhost:8080/api/auth/github` (302) → `github.com/login/oauth/authorize` → (after you approve) `localhost:8080/api/github/oauth/callback` (302, with a `Set-Cookie`) → `localhost:5173/github/callback?result=signed-in` → `POST /api/auth/refresh` (200).
+4. Click the callback request → *Headers*: the `Location` and `Set-Cookie: devpulse_refresh=…; HttpOnly; SameSite=Strict`.
+
+### VS Code: find your way around a feature
+
+| Shortcut | Does |
+|---|---|
+| `⌘P` then `@` | Symbols in a file (e.g. `⌘P` → `GitHubSettingsPage`, then `@Disconnect`) |
+| `⌥⇧F12` | Find all references, in a side panel |
+| `⌘K ⌘0` / `⌘K ⌘J` | Fold all / unfold all (to see a big file's outline) |
+| `⌃G` | Go to line |
+
+**Exercise:** in `src/features/settings/pages/GitHubSettingsPage.tsx`, press `⌘K ⌘0` to fold everything. The file reads as its outline: `GitHubSettingsPage`, `useGitHubRedirect`, `ConnectCard`, `ConnectedCards`, `DisconnectButton`. Unfold one at a time.
+
+---
+
 ## Reviewing and committing changes (IntelliJ)
 
 Use IntelliJ for Git: it opens the whole repo (backend, frontend, docs) and has the best diff viewer.

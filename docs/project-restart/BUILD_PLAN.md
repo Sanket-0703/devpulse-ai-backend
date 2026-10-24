@@ -9,7 +9,8 @@ Ground rules
 - **Mock AI by default.** No paid AI calls unless you approve them. OpenAI is the real provider (per the resume).
 - **Tests as we go.** JUnit + Mockito for every backend feature, with a JaCoCo gate building up to **80%+ coverage**. Every screen gets component tests (Vitest + React Testing Library). GitHub calls are tested against WireMock stubs, never the real GitHub.
 - **Learn the IDEs on the way.** IntelliJ IDEA for the backend, VS Code for the frontend. Each level teaches the IDE features that level needs; the running guide is [IDE_GUIDE.md](IDE_GUIDE.md).
-- **Every level ends with its own explainer.** `docs/levels/LEVEL_N.md` (and PDF) walks through every page, class and function built in that level, how the requests flow, and why it was built that way. Level docs: [Level 1](../levels/LEVEL_1.md) · [Level 2](../levels/LEVEL_2.md) · [Level 3](../levels/LEVEL_3.md).
+- **One branch and one PR per level.** Each level starts on a fresh branch from `main` named `level-N-<topic>`, is committed as backend / frontend / docs commits, and goes up as a draft PR so CI runs. You review and merge it.
+- **Every level ends with its own explainer.** `docs/levels/LEVEL_N.md` (and PDF) walks through every page, class and function built in that level, how the requests flow, and why it was built that way. Level docs: [Level 1](../levels/LEVEL_1.md) · [Level 2](../levels/LEVEL_2.md) · [Level 3](../levels/LEVEL_3.md) · [Level 4](../levels/LEVEL_4.md).
 - **Supported languages** for reviews, security rules and code search: **Java, JavaScript/TypeScript, Python**. Other files are skipped.
 
 ## Tech stack (from the resume)
@@ -96,14 +97,18 @@ Legend: `[x]` done · `[ ]` to do · **BE** backend · **FE** frontend
 
 **Check:** change name and password in the browser, log in again with the new password. ✅ Done against the real backend — plus a second device (signed in from the terminal) was signed out by the password change, and "Sign out everywhere" ended the browser session.
 
-## Level 4 — Connect GitHub
+## Level 4 — Connect GitHub (code done; real-GitHub check pending)
 
-Decision first: GitHub App vs OAuth App.
-- [ ] BE: "Sign in with GitHub" (log in or sign up with a GitHub account, linked to the same user if the email matches)
-- [ ] BE: OAuth connect flow, callback redirects back to the frontend, connection status, disconnect
-- [ ] BE: encrypt GitHub tokens in the database; no tokens in any API response
-- [ ] FE: "Sign in with GitHub" button on Login/Register, "Connect GitHub" onboarding, callback page, GitHub section in Settings
-- [ ] BE: WireMock stubs of the GitHub API for tests
+Decision: **GitHub App** (fine-grained permissions, per-repo install, expiring tokens, built-in webhook, bot comments). Setup: [GITHUB_APP_SETUP.md](../GITHUB_APP_SETUP.md).
+- [x] BE: "Sign in with GitHub" — creates the account or signs into the linked one; **never auto-links by email** (DevPulse doesn't verify emails: pre-account-takeover)
+- [x] BE: Connect flow bound to the signed-in user, install flow, one callback that always redirects to the frontend, connection status, disconnect (revokes the grant on GitHub; refused for GitHub-only accounts)
+- [x] BE: single-use random OAuth `state` in Redis (GETDEL); GitHub calls outside DB transactions, with timeouts
+- [x] BE: GitHub tokens AES-256-GCM encrypted at rest (JPA converter, Flyway V5), never in API responses
+- [x] BE: GitHub-only accounts (no password) can set a first password; WireMock stubs of GitHub; 101 backend tests, coverage 47% → 70%
+- [x] FE: "Continue with GitHub" on sign-in/sign-up, `/github/callback` page, Settings → GitHub (connect, install, manage, disconnect), "Set a password" for GitHub-only accounts; 46 frontend tests
+- [x] Level doc: [LEVEL_4.md](../levels/LEVEL_4.md)
+- [ ] IDE: HTTP Client, Database tool, DevTools redirect chain ([IDE_GUIDE.md](IDE_GUIDE.md), Level 4)
+- [ ] Real GitHub: register the app ([GITHUB_APP_SETUP.md](../GITHUB_APP_SETUP.md)), then sign in with GitHub, connect, install, disconnect against github.com
 
 **Check:** sign in with GitHub; connect your GitHub test account, see it as connected, disconnect.
 
