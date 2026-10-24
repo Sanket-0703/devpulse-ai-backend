@@ -97,7 +97,7 @@ Legend: `[x]` done · `[ ]` to do · **BE** backend · **FE** frontend
 
 **Check:** change name and password in the browser, log in again with the new password. ✅ Done against the real backend — plus a second device (signed in from the terminal) was signed out by the password change, and "Sign out everywhere" ended the browser session.
 
-## Level 4 — Connect GitHub (code done; real-GitHub check pending)
+## Level 4 — Connect GitHub ✅ (IDE exercises are yours to do)
 
 Decision: **GitHub App** (fine-grained permissions, per-repo install, expiring tokens, built-in webhook, bot comments). Setup: [GITHUB_APP_SETUP.md](../GITHUB_APP_SETUP.md).
 - [x] BE: "Sign in with GitHub" — creates the account or signs into the linked one; **never auto-links by email** (DevPulse doesn't verify emails: pre-account-takeover)
@@ -108,9 +108,9 @@ Decision: **GitHub App** (fine-grained permissions, per-repo install, expiring t
 - [x] FE: "Continue with GitHub" on sign-in/sign-up, `/github/callback` page, Settings → GitHub (connect, install, manage, disconnect), "Set a password" for GitHub-only accounts; 46 frontend tests
 - [x] Level doc: [LEVEL_4.md](../levels/LEVEL_4.md)
 - [ ] IDE: HTTP Client, Database tool, DevTools redirect chain ([IDE_GUIDE.md](IDE_GUIDE.md), Level 4)
-- [ ] Real GitHub: register the app ([GITHUB_APP_SETUP.md](../GITHUB_APP_SETUP.md)), then sign in with GitHub, connect, install, disconnect against github.com
+- [x] Real GitHub: app registered ([GITHUB_APP_SETUP.md](../GITHUB_APP_SETUP.md)); sign in with GitHub (new account), install on selected repositories, set a password, disconnect (grant revoked), connect again — all against github.com
 
-**Check:** sign in with GitHub; connect your GitHub test account, see it as connected, disconnect.
+**Check:** sign in with GitHub; connect your GitHub test account, see it as connected, disconnect. ✅ Done with the real GitHub App: tokens stored encrypted (`v1:…`), installation id matches GitHub's.
 
 ## Level 5 — Repositories
 
