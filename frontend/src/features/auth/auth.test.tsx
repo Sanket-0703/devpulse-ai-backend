@@ -59,8 +59,8 @@ describe('Create account', () => {
   it('creates the account and signs straight in', async () => {
     const { user, router } = renderApp('/register')
 
-    await user.type(await screen.findByLabelText('Name'), 'Grace Hopper')
-    await user.type(screen.getByLabelText('Email'), 'grace@example.com')
+    await user.type(await screen.findByLabelText('Name'), 'Katherine Johnson')
+    await user.type(screen.getByLabelText('Email'), 'katherine@example.com')
     await user.type(screen.getByLabelText('Password'), 'Passw0rd!23')
     await user.type(screen.getByLabelText('Confirm password'), 'Passw0rd!23')
     await user.click(screen.getByRole('button', { name: 'Create account' }))
@@ -73,7 +73,7 @@ describe('Create account', () => {
     const { user } = renderApp('/register')
 
     await user.type(await screen.findByLabelText('Name'), 'Grace')
-    await user.type(screen.getByLabelText('Email'), 'grace@example.com')
+    await user.type(screen.getByLabelText('Email'), 'katherine@example.com')
     await user.type(screen.getByLabelText('Password'), 'short')
     await user.type(screen.getByLabelText('Confirm password'), 'different')
     await user.click(screen.getByRole('button', { name: 'Create account' }))

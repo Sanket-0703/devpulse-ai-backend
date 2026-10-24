@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { ApiRequestError, errorMessage } from '@/lib/api/errors'
+import { applyServerFieldErrors } from '@/lib/forms'
 
 import { useAuth } from '../authContext'
 import { type RegisterValues, registerSchema } from '../schemas'
@@ -40,14 +41,7 @@ export function RegisterPage() {
         setError('email', { message: error.message }, { shouldFocus: true })
         return
       }
-      if (error instanceof ApiRequestError && error.status === 400) {
-        // Show the backend's per-field messages next to the matching inputs.
-        const fieldErrors = error.fieldErrors
-        SERVER_FIELDS.forEach((field) => {
-          if (fieldErrors[field]) setError(field, { message: fieldErrors[field] })
-        })
-        if (SERVER_FIELDS.some((field) => fieldErrors[field])) return
-      }
+      if (applyServerFieldErrors(error, setError, SERVER_FIELDS)) return
       setFormError(errorMessage(error))
     }
   })

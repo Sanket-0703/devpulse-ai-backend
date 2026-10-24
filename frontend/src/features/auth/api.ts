@@ -33,6 +33,16 @@ export async function logout(): Promise<void> {
   }
 }
 
+/**
+ * Ends every session on every device; the server also clears this device's
+ * cookie. Throws if the request fails, and then nothing changes locally:
+ * the user must not think they signed out everywhere when they didn't.
+ */
+export async function logoutEverywhere(): Promise<void> {
+  unwrap(await api.POST('/api/auth/logout-all'))
+  setAccessToken(null)
+}
+
 export async function fetchCurrentUser(): Promise<User> {
   return unwrap(await api.GET('/api/auth/me'))
 }

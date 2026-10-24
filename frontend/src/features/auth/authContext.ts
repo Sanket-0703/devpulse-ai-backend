@@ -10,6 +10,10 @@ export type AuthContextValue = AuthState & {
   /** Creates the account, then signs in with the same credentials. */
   register: (body: RegisterBody) => Promise<User>
   logout: () => Promise<void>
+  /** Ends every session of this account on every device, including this one. */
+  logoutEverywhere: () => Promise<void>
+  /** Replaces the signed-in user's details, e.g. after a profile update. */
+  updateUser: (user: User) => void
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)

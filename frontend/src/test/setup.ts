@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest'
 
 import { cleanup } from '@testing-library/react'
+import { toast } from 'sonner'
 
 import { setAccessToken } from '@/features/auth/session'
 
@@ -17,6 +18,8 @@ afterEach(() => {
   server.resetHandlers()
   setAccessToken(null)
   localStorage.clear()
+  // sonner keeps toasts in module state, which outlives each test's render.
+  toast.dismiss()
 })
 afterAll(() => server.close())
 

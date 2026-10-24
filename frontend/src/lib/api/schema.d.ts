@@ -11,7 +11,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Your profile */
         get: operations["getProfile"];
+        /**
+         * Update name and email
+         * @description Changing the email needs currentPassword (400 on the field if missing or wrong); 409 if the email belongs to another account.
+         */
         put: operations["updateProfile"];
         post?: never;
         delete?: never;
@@ -28,6 +33,10 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
+        /**
+         * Change password
+         * @description Signs out every other device. Returns a new access token and sets a new refresh-token cookie so this device stays signed in.
+         */
         put: operations["changePassword"];
         post?: never;
         delete?: never;
@@ -138,6 +147,26 @@ export interface paths {
          * @description Revokes the refresh token, blocks the access token if sent, clears the cookie. Always 204.
          */
         post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/logout-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign out everywhere
+         * @description Ends every session of this account on every device, including this one.
+         */
+        post: operations["logoutEverywhere"];
         delete?: never;
         options?: never;
         head?: never;
@@ -461,18 +490,37 @@ export interface components {
             name: string;
             /** Format: email */
             email: string;
+            /** @description Required only when changing the email */
+            currentPassword?: string;
         };
-        ProfileResponse: {
+        UserResponse: {
             /** Format: int64 */
-            id?: number;
-            name?: string;
-            email?: string;
+            id: number;
+            name: string;
+            email: string;
             /** @enum {string} */
-            role?: "ROLE_USER" | "ROLE_ADMIN";
+            role: "ROLE_USER" | "ROLE_ADMIN";
+            /**
+             * Format: date-time
+             * @description When the account was created (UTC)
+             */
+            createdAt: string;
         };
         ChangePasswordRequest: {
             currentPassword: string;
             newPassword: string;
+        };
+        AuthResponse: {
+            /** @description Send as 'Authorization: Bearer <accessToken>' */
+            accessToken: string;
+            /** @example Bearer */
+            tokenType: string;
+            /**
+             * Format: int64
+             * @description Seconds until the access token expires
+             */
+            expiresIn: number;
+            user: components["schemas"]["UserResponse"];
         };
         ConnectGitHubRequest: {
             /** Format: int64 */
@@ -493,26 +541,6 @@ export interface components {
             /** Format: email */
             email: string;
             password: string;
-        };
-        UserResponse: {
-            /** Format: int64 */
-            id: number;
-            name: string;
-            email: string;
-            /** @enum {string} */
-            role: "ROLE_USER" | "ROLE_ADMIN";
-        };
-        AuthResponse: {
-            /** @description Send as 'Authorization: Bearer <accessToken>' */
-            accessToken: string;
-            /** @example Bearer */
-            tokenType: string;
-            /**
-             * Format: int64
-             * @description Seconds until the access token expires
-             */
-            expiresIn: number;
-            user: components["schemas"]["UserResponse"];
         };
         LoginRequest: {
             /** Format: email */
@@ -616,6 +644,8 @@ export interface components {
             password?: string;
             /** @enum {string} */
             role?: "ROLE_USER" | "ROLE_ADMIN";
+            /** Format: date-time */
+            tokensValidAfter?: string;
             githubAccount?: components["schemas"]["GitHubAccount"];
         };
         GitHubRepositoryCacheDto: {
@@ -671,7 +701,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ProfileResponse"];
+                    "*/*": components["schemas"]["UserResponse"];
                 };
             };
         };
@@ -695,7 +725,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ProfileResponse"];
+                    "*/*": components["schemas"]["UserResponse"];
                 };
             };
         };
@@ -719,7 +749,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": string;
+                    "*/*": components["schemas"]["AuthResponse"];
                 };
             };
         };
@@ -840,6 +870,24 @@ export interface operations {
         };
     };
     logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    logoutEverywhere: {
         parameters: {
             query?: never;
             header?: never;

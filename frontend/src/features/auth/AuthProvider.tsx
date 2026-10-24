@@ -56,9 +56,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ status: 'anonymous' })
   }, [queryClient])
 
+  const logoutEverywhere = useCallback(async () => {
+    await authApi.logoutEverywhere()
+    queryClient.clear()
+    setState({ status: 'anonymous' })
+  }, [queryClient])
+
+  const updateUser = useCallback((user: authApi.User) => {
+    setState((current) =>
+      current.status === 'authenticated' ? { status: 'authenticated', user } : current,
+    )
+  }, [])
+
   const value = useMemo(
-    () => ({ ...state, login, register, logout }),
-    [state, login, register, logout],
+    () => ({ ...state, login, register, logout, logoutEverywhere, updateUser }),
+    [state, login, register, logout, logoutEverywhere, updateUser],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
