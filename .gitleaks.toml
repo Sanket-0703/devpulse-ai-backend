@@ -4,6 +4,16 @@ title = "DevPulse AI gitleaks config"
 [extend]
 useDefault = true
 
+# Known test-only values, ignored by every rule (built-in ones included).
+[[allowlists]]
+description = "Test profile placeholders"
+regexTarget = "secret"
+regexes = [
+  # app.security.token-encryption-key in application-test.properties:
+  # base64 of "test-only-key-0123456789abcdef01".
+  '''^dGVzdC1vbmx5LWtleS0wMTIzNDU2Nzg5YWJjZGVmMDE=$''',
+]
+
 # The built-in rules rely on entropy and miss human-readable secrets such as
 # "postgres" or a passphrase-style JWT key, which is exactly what leaked
 # before M0-01. In config files, secret-looking keys must reference an
@@ -25,6 +35,4 @@ regexes = [
   '''^(change-me|test|mock-ai|test-client-secret)$''',
   '''^test-only-''',
   '''^[0-9]+(ms|s|m|h|d)$''',
-  # Test profile's token-encryption key: base64 of "test-only-key-0123456789abcdef01".
-  '''^dGVzdC1vbmx5LWtleS0wMTIzNDU2Nzg5YWJjZGVmMDE=$''',
 ]
