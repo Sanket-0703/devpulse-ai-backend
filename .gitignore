@@ -23,3 +23,6 @@ src/main/resources/embeddings/
 
 ### Generated PDF copies of docs/ (regenerate from the .md files) ###
 docs/pdf/
+
+### Private keys (GitHub App key lives in ~/.devpulse, never in the repo) ###
+*.pem

@@ -14,10 +14,13 @@ public record UserResponse(
         @Schema(requiredMode = REQUIRED) String name,
         @Schema(requiredMode = REQUIRED) String email,
         @Schema(requiredMode = REQUIRED) Role role,
-        @Schema(requiredMode = REQUIRED, description = "When the account was created (UTC)") Instant createdAt
+        @Schema(requiredMode = REQUIRED, description = "When the account was created (UTC)") Instant createdAt,
+        @Schema(requiredMode = REQUIRED, description = "False for accounts created with Sign in with GitHub until a password is set")
+        boolean hasPassword
 ) {
 
     public static UserResponse from(User user) {
-        return new UserResponse(user.getId(), user.getName(), user.getEmail(), user.getRole(), user.getCreatedAt());
+        return new UserResponse(user.getId(), user.getName(), user.getEmail(), user.getRole(), user.getCreatedAt(),
+                user.getPassword() != null);
     }
 }

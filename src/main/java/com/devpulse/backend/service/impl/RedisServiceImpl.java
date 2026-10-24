@@ -47,6 +47,11 @@ public class RedisServiceImpl implements RedisService {
     }
 
     @Override
+    public String getAndDelete(String key) {
+        return redisTemplate.opsForValue().getAndDelete(key);
+    }
+
+    @Override
     public Long getTtl(String key) {
 
         return redisTemplate.getExpire(

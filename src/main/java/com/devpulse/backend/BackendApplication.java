@@ -2,7 +2,8 @@ package com.devpulse.backend;
 
 import com.devpulse.backend.config.AIProperties;
 import com.devpulse.backend.config.CorsProperties;
-import com.devpulse.backend.config.GitHubOAuthProperties;
+import com.devpulse.backend.config.FrontendProperties;
+import com.devpulse.backend.config.GitHubProperties;
 import com.devpulse.backend.config.JwtProperties;
 import com.devpulse.backend.config.RefreshCookieProperties;
 import com.devpulse.backend.config.S3Properties;
@@ -13,7 +14,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 @SpringBootApplication
 @EnableConfigurationProperties({
 		JwtProperties.class,
-		GitHubOAuthProperties.class,
+		GitHubProperties.class,
+		FrontendProperties.class,
 		S3Properties.class,
 		AIProperties.class,
 		CorsProperties.class,

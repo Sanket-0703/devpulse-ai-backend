@@ -148,6 +148,46 @@ class AuthServiceImplTest {
     }
 
     @Test
+    void anAccountWithoutAPasswordCannotLogInWithOne() {
+
+        User githubOnly = user();
+        githubOnly.setPassword(null);
+        when(userRepository.findByEmailIgnoreCase(anyString())).thenReturn(Optional.of(githubOnly));
+
+        assertThatThrownBy(() -> authService.login(loginRequest("ada@example.com", "anything")))
+                .isInstanceOf(InvalidCredentialsException.class);
+
+        // Still does the bcrypt work, so timing doesn't reveal GitHub-only accounts.
+        verify(passwordEncoder).matches("anything", DUMMY_HASH);
+    }
+
+    @Test
+    void anAccountWithoutAPasswordCanSetItsFirstOneWithoutACurrentPassword() {
+
+        User githubOnly = user();
+        githubOnly.setPassword(null);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(githubOnly));
+        when(passwordEncoder.encode("First-Passw0rd!")).thenReturn("first-hash");
+        when(refreshTokenService.issue(githubOnly)).thenReturn(new IssuedRefreshToken(3L, "raw", NOW.plusSeconds(60)));
+        when(jwtService.issue(githubOnly)).thenReturn(new JwtService.IssuedAccessToken("jwt", NOW.plusSeconds(900)));
+        when(jwtService.getAccessTokenTtl()).thenReturn(Duration.ofMinutes(15));
+
+        authService.changePassword(1L, changePassword(null, "First-Passw0rd!"));
+
+        assertThat(githubOnly.getPassword()).isEqualTo("first-hash");
+    }
+
+    @Test
+    void anAccountWithAPasswordMustSendTheCurrentOne() {
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user()));
+
+        assertThatThrownBy(() -> authService.changePassword(1L, changePassword(" ", "NewPassw0rd!")))
+                .isInstanceOfSatisfying(FieldValidationException.class,
+                        e -> assertThat(e.getMessage()).isEqualTo("Current password is required"));
+    }
+
+    @Test
     void refreshWithoutACookieFails() {
 
         assertThatThrownBy(() -> authService.refresh(null)).isInstanceOf(InvalidRefreshTokenException.class);

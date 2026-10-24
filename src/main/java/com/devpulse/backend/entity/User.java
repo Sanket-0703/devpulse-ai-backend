@@ -30,7 +30,7 @@ public class User extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
+    /** bcrypt hash; null for accounts created with "Sign in with GitHub" until a password is set. */
     private String password;
 
     @Enumerated(EnumType.STRING)

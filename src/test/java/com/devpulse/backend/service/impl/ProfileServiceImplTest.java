@@ -136,6 +136,17 @@ class ProfileServiceImplTest {
     }
 
     @Test
+    void anAccountWithoutAPasswordMustSetOneBeforeChangingTheEmail() {
+
+        user.setPassword(null);
+        givenUserExists();
+
+        assertThatThrownBy(() -> profileService.updateProfile(1L, request("Ada", "new@example.com", "whatever")))
+                .isInstanceOfSatisfying(FieldValidationException.class,
+                        e -> assertThat(e.getMessage()).contains("Set a password"));
+    }
+
+    @Test
     void unknownUserIs404() {
 
         when(userRepository.findById(99L)).thenReturn(Optional.empty());

@@ -95,10 +95,12 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmailIgnoreCase(EmailAddresses.normalize(request.getEmail()))
                 .orElse(null);
 
-        String hashToCheck = user != null ? user.getPassword() : dummyPasswordHash;
+        // Accounts created with "Sign in with GitHub" may have no password yet.
+        boolean hasPassword = user != null && user.getPassword() != null;
+        String hashToCheck = hasPassword ? user.getPassword() : dummyPasswordHash;
         boolean passwordMatches = passwordEncoder.matches(request.getPassword(), hashToCheck);
 
-        if (user == null || !passwordMatches) {
+        if (!hasPassword || !passwordMatches) {
             throw new InvalidCredentialsException(INVALID_CREDENTIALS);
         }
 
@@ -147,11 +149,18 @@ public class AuthServiceImpl implements AuthService {
 
         User user = findUser(userId);
 
-        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
-            throw new FieldValidationException("currentPassword", "Current password is incorrect");
-        }
-        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
-            throw new FieldValidationException("newPassword", "New password must be different from the current one");
+        // A GitHub-only account has no password yet: this sets the first one.
+        if (user.getPassword() != null) {
+            String current = request.getCurrentPassword();
+            if (current == null || current.isBlank()) {
+                throw new FieldValidationException("currentPassword", "Current password is required");
+            }
+            if (!passwordEncoder.matches(current, user.getPassword())) {
+                throw new FieldValidationException("currentPassword", "Current password is incorrect");
+            }
+            if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+                throw new FieldValidationException("newPassword", "New password must be different from the current one");
+            }
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));

@@ -1,147 +1,73 @@
 package com.devpulse.backend.service.impl;
 
-import com.devpulse.backend.config.GitHubOAuthProperties;
+import com.devpulse.backend.client.GitHubOAuthClient;
 import com.devpulse.backend.dto.github.GitHubTokenResponse;
 import com.devpulse.backend.entity.GitHubAccount;
-import com.devpulse.backend.exception.ConflictException;
+import com.devpulse.backend.exception.GitHubIntegrationException;
 import com.devpulse.backend.repository.GitHubAccountRepository;
 import com.devpulse.backend.service.GitHubTokenService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestClient;
 
-import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 
 @Service
-@RequiredArgsConstructor
-@Transactional
 public class GitHubTokenServiceImpl implements GitHubTokenService {
 
-    private final GitHubOAuthProperties properties;
-    private final GitHubAccountRepository githubAccountRepository;
+    /** Refresh a little early so a token doesn't expire mid-request. */
+    static final Duration EXPIRY_MARGIN = Duration.ofMinutes(5);
 
-    private final RestClient restClient =
-            RestClient.builder().build();
+    private final GitHubOAuthClient oauthClient;
+    private final GitHubAccountRepository githubAccountRepository;
+    private final Clock clock;
+
+    public GitHubTokenServiceImpl(
+            GitHubOAuthClient oauthClient,
+            GitHubAccountRepository githubAccountRepository,
+            Clock clock) {
+
+        this.oauthClient = oauthClient;
+        this.githubAccountRepository = githubAccountRepository;
+        this.clock = clock;
+    }
 
     @Override
-    public String getValidAccessToken(
-            GitHubAccount account) {
+    @Transactional
+    public String getValidAccessToken(GitHubAccount account) {
 
-        if (account.getAccessTokenExpiresAt() != null
-                && LocalDateTime.now().isBefore(
-                account.getAccessTokenExpiresAt()
-        )) {
+        Instant expiresAt = account.getAccessTokenExpiresAt();
+        boolean stillValid = expiresAt == null // token expiry disabled on the app: never expires
+                || clock.instant().plus(EXPIRY_MARGIN).isBefore(expiresAt);
 
-            return account.getAccessToken();
+        if (!stillValid) {
+            refreshAccessToken(account);
         }
-
-        refreshAccessToken(account);
-
         return account.getAccessToken();
     }
 
     @Override
-    public void refreshAccessToken(
-            GitHubAccount account) {
+    @Transactional
+    public void refreshAccessToken(GitHubAccount account) {
 
+        Instant now = clock.instant();
         if (account.getRefreshToken() == null
-                || account.getRefreshToken().isBlank()) {
-
-            throw new ConflictException(
-                    "GitHub refresh token is not available"
-            );
+                || (account.getRefreshTokenExpiresAt() != null && !now.isBefore(account.getRefreshTokenExpiresAt()))) {
+            throw new GitHubIntegrationException("github_reconnect",
+                    "The GitHub connection has expired. Please connect GitHub again.");
         }
 
-        if (account.getRefreshTokenExpiresAt() != null
-                && LocalDateTime.now().isAfter(
-                account.getRefreshTokenExpiresAt()
-        )) {
-
-            throw new ConflictException(
-                    "GitHub refresh token has expired. "
-                            + "Please reconnect GitHub."
-            );
-        }
-
-        GitHubTokenResponse response =
-                requestNewTokens(
-                        account.getRefreshToken()
-                );
-
-        if (response == null
-                || response.getAccessToken() == null
-                || response.getRefreshToken() == null) {
-
-            throw new ConflictException(
-                    "Failed to refresh GitHub access token"
-            );
-        }
-
-        account.setAccessToken(
-                response.getAccessToken()
-        );
-
-        account.setRefreshToken(
-                response.getRefreshToken()
-        );
-
-        account.setAccessTokenExpiresAt(
-                LocalDateTime.now()
-                        .plusSeconds(
-                                response.getExpiresIn()
-                        )
-        );
-
-        account.setRefreshTokenExpiresAt(
-                LocalDateTime.now()
-                        .plusSeconds(
-                                response.getRefreshTokenExpiresIn()
-                        )
-        );
-
+        applyTokens(account, oauthClient.refresh(account.getRefreshToken()), now);
         githubAccountRepository.save(account);
     }
 
-    private GitHubTokenResponse requestNewTokens(
-            String refreshToken) {
-
-        MultiValueMap<String, String> formData =
-                new LinkedMultiValueMap<>();
-
-        formData.add(
-                "client_id",
-                properties.getClientId()
-        );
-
-        formData.add(
-                "client_secret",
-                properties.getClientSecret()
-        );
-
-        formData.add(
-                "grant_type",
-                "refresh_token"
-        );
-
-        formData.add(
-                "refresh_token",
-                refreshToken
-        );
-
-        return restClient.post()
-                .uri(
-                        "https://github.com/login/oauth/access_token"
-                )
-                .contentType(
-                        MediaType.APPLICATION_FORM_URLENCODED
-                )
-                .accept(MediaType.APPLICATION_JSON)
-                .body(formData)
-                .retrieve()
-                .body(GitHubTokenResponse.class);
+    /** Copies a token response onto the account, turning "expires in N seconds" into instants. */
+    static void applyTokens(GitHubAccount account, GitHubTokenResponse tokens, Instant now) {
+        account.setAccessToken(tokens.getAccessToken());
+        account.setAccessTokenExpiresAt(tokens.getExpiresIn() == null ? null : now.plusSeconds(tokens.getExpiresIn()));
+        account.setRefreshToken(tokens.getRefreshToken());
+        account.setRefreshTokenExpiresAt(
+                tokens.getRefreshTokenExpiresIn() == null ? null : now.plusSeconds(tokens.getRefreshTokenExpiresIn()));
     }
 }

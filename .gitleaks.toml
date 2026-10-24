@@ -25,4 +25,6 @@ regexes = [
   '''^(change-me|test|mock-ai|test-client-secret)$''',
   '''^test-only-''',
   '''^[0-9]+(ms|s|m|h|d)$''',
+  # Test profile's token-encryption key: base64 of "test-only-key-0123456789abcdef01".
+  '''^dGVzdC1vbmx5LWtleS0wMTIzNDU2Nzg5YWJjZGVmMDE=$''',
 ]
