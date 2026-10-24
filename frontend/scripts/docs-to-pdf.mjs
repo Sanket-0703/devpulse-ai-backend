@@ -44,7 +44,8 @@ li > ul, li > ol { margin: 2pt 0 0; }
 input[type=checkbox] { margin: 0 5pt 0 0; vertical-align: -1px; }
 li:has(> input[type=checkbox]) { list-style: none; margin-left: -14pt; }
 a { color: #0969da; text-decoration: none; }
-code { font: 8.5pt/1.4 "SF Mono", Menlo, monospace; background: #f3f4f6; padding: 0.5pt 3pt; border-radius: 3px; }
+code { font: 8.5pt/1.4 "SF Mono", Menlo, monospace; background: #f3f4f6; padding: 0.5pt 3pt; border-radius: 3px;
+  overflow-wrap: anywhere; } /* long paths wrap instead of making Chrome shrink the page */
 pre { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 7pt 9pt; margin: 0 0 8pt;
   white-space: pre-wrap; word-break: break-word; break-inside: avoid; }
 pre code { background: none; padding: 0; font-size: 8.3pt; }

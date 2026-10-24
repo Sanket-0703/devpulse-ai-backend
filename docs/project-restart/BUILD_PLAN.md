@@ -10,7 +10,7 @@ Ground rules
 - **Tests as we go.** JUnit + Mockito for every backend feature, with a JaCoCo gate building up to **80%+ coverage**. Every screen gets component tests (Vitest + React Testing Library). GitHub calls are tested against WireMock stubs, never the real GitHub.
 - **Learn the IDEs on the way.** IntelliJ IDEA for the backend, VS Code for the frontend. Each level teaches the IDE features that level needs; the running guide is [IDE_GUIDE.md](IDE_GUIDE.md).
 - **One branch and one PR per level.** Each level starts on a fresh branch from `main` named `level-N-<topic>`, is committed as backend / frontend / docs commits, and goes up as a draft PR so CI runs. You review and merge it.
-- **Every level ends with its own explainer.** `docs/levels/LEVEL_N.md` (and PDF) walks through every page, class and function built in that level, how the requests flow, and why it was built that way. Level docs: [Level 1](../levels/LEVEL_1.md) · [Level 2](../levels/LEVEL_2.md) · [Level 3](../levels/LEVEL_3.md) · [Level 4](../levels/LEVEL_4.md).
+- **Every level ends with its own explainer.** `docs/levels/LEVEL_N.md` (and PDF) walks through every page, class and function built in that level, how the requests flow, and why it was built that way. Level docs: [Level 1](../levels/LEVEL_1.md) · [Level 2](../levels/LEVEL_2.md) · [Level 3](../levels/LEVEL_3.md) · [Level 4](../levels/LEVEL_4.md) · [Level 5](../levels/LEVEL_5.md).
 - **Supported languages** for reviews, security rules and code search: **Java, JavaScript/TypeScript, Python**. Other files are skipped.
 
 ## Tech stack (from the resume)
@@ -112,12 +112,18 @@ Decision: **GitHub App** (fine-grained permissions, per-repo install, expiring t
 
 **Check:** sign in with GitHub; connect your GitHub test account, see it as connected, disconnect. ✅ Done with the real GitHub App: tokens stored encrypted (`v1:…`), installation id matches GitHub's.
 
-## Level 5 — Repositories
+## Level 5 — Repositories ✅ (IDE exercises are yours to do)
 
-- [ ] BE: background repo sync + manual resync, paged "my repositories" list, enable/disable review per repo, ownership checks
-- [ ] FE: repositories list (search, filter, pagination) and repository detail page
+- [x] BE: act as the GitHub App — app JWT signed with the private key (RS256; reads GitHub's PKCS#1 keys), exchanged for one-hour installation tokens cached **encrypted in Redis**
+- [x] BE: background repository sync (Java 21 virtual threads) after connect/install and on "Sync now" (once a minute, 429 otherwise); lists exactly the repos granted to the app, upserts, removes the ones no longer granted, keeps the user's review setting; status RUNNING/SUCCEEDED/FAILED with a reason; interrupted syncs marked failed on restart
+- [x] BE: paged "my repositories" API (search, review filter, sort by name or last push), detail, review toggle; all scoped to the signed-in user (404 otherwise)
+- [x] BE: Flyway V6 — review flag, pushed_at, sync status; a repo can belong to several DevPulse users (unique per account); old IDOR endpoints and the stale repository cache removed
+- [x] BE: 115 tests, coverage **81%** (past the 80% target); WireMock sync tests with a real RSA key generated per run
+- [x] FE: Repositories page (search, filter, sort, pagination in the URL; optimistic review switch; Sync now with live status; empty states) and repository detail page; 62 frontend tests; TanStack Query Devtools in development
+- [x] Level doc: [LEVEL_5.md](../levels/LEVEL_5.md)
+- [ ] IDE: running tests and coverage, debugging background threads, Docker in Services, Redis, Vitest watch, Query Devtools ([IDE_GUIDE.md](IDE_GUIDE.md), Level 5)
 
-**Check:** your repos appear; turn review on for one.
+**Check:** your repos appear; turn review on for one. ✅ Done with the real installation: both granted repositories synced, review turned on for one, installation token cached encrypted in Redis.
 
 ## Level 6 — Pull requests
 
