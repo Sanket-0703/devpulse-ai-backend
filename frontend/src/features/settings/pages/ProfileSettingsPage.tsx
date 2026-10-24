@@ -33,8 +33,11 @@ export function ProfileSettingsPage() {
   const { updateUser } = useAuth()
   const [formError, setFormError] = useState<string | null>(null)
 
-  // Rebuilt when the email changes, because the password rule depends on it.
-  const schema = useMemo(() => profileSchema(user.email), [user.email])
+  // Rebuilt when these change, because the email rules depend on them.
+  const schema = useMemo(
+    () => profileSchema(user.email, user.hasPassword),
+    [user.email, user.hasPassword],
+  )
 
   const {
     register,
@@ -102,7 +105,7 @@ export function ProfileSettingsPage() {
             <Input type="email" autoComplete="email" {...register('email')} />
           </FormField>
 
-          {emailChanged && (
+          {emailChanged && user.hasPassword && (
             <FormField
               label="Current password"
               error={errors.currentPassword?.message}

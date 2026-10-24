@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/input'
 import { ApiRequestError, errorMessage } from '@/lib/api/errors'
 import { applyServerFieldErrors } from '@/lib/forms'
 
+import { GitHubSignInButton } from '@/features/github/GitHubSignInButton'
+
 import { useAuth } from '../authContext'
 import { type RegisterValues, registerSchema } from '../schemas'
 
@@ -56,6 +58,8 @@ export function RegisterPage() {
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} noValidate className="grid gap-4">
+          <GitHubSignInButton />
+
           {formError && (
             <Alert variant="destructive">
               <CircleAlertIcon />

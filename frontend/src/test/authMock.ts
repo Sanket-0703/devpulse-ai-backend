@@ -8,7 +8,7 @@ type User = components['schemas']['UserResponse']
 
 /**
  * A tiny in-memory imitation of the backend's account endpoints
- * (/api/auth/*, /api/profile*), so tests exercise the real frontend code
+ * (/api/auth/*, /api/profile*, /api/github/connection…), so tests exercise the real frontend code
  * (token in memory, refresh cookie, retry on 401, settings forms) without a
  * server. It follows the backend's rules and messages.
  */
@@ -19,6 +19,7 @@ export const DEMO_USER: User = {
   email: 'ada@example.com',
   role: 'ROLE_USER',
   createdAt: '2026-10-01T09:30:00Z',
+  hasPassword: true,
 }
 export const DEMO_PASSWORD = 'Passw0rd!23'
 
@@ -29,9 +30,17 @@ export const OTHER_USER: User = {
   email: 'grace@example.com',
   role: 'ROLE_USER',
   createdAt: '2026-10-02T09:30:00Z',
+  hasPassword: true,
 }
 
-type Account = { user: User; password: string }
+/** password null = account created with "Sign in with GitHub" and no password set yet. */
+type Account = { user: User; password: string | null; github?: GitHubLink }
+
+type GitHubLink = { username: string; installed: boolean }
+
+export const GITHUB_AUTHORIZE_URL = 'https://github.com/login/oauth/authorize?state=test-state'
+export const GITHUB_INSTALL_URL =
+  'https://github.com/apps/devpulse-test/installations/new?state=test-state'
 
 const state = {
   accounts: new Map<number, Account>(),
@@ -43,9 +52,25 @@ const state = {
   refreshCalls: 0,
 }
 
-export function resetAuthMock({ signedIn = true }: { signedIn?: boolean } = {}) {
-  state.accounts = new Map([
-    [DEMO_USER.id, { user: { ...DEMO_USER }, password: DEMO_PASSWORD }],
+export function resetAuthMock({
+  signedIn = true,
+  githubOnly = false,
+}: {
+  signedIn?: boolean
+  /** The demo user signed up with GitHub: no password, GitHub connected. */
+  githubOnly?: boolean
+} = {}) {
+  state.accounts = new Map<number, Account>([
+    [
+      DEMO_USER.id,
+      githubOnly
+        ? {
+            user: { ...DEMO_USER, hasPassword: false },
+            password: null,
+            github: { username: 'octo-ada', installed: false },
+          }
+        : { user: { ...DEMO_USER }, password: DEMO_PASSWORD },
+    ],
     [OTHER_USER.id, { user: { ...OTHER_USER }, password: DEMO_PASSWORD }],
   ])
   state.sessionUserId = signedIn ? DEMO_USER.id : null
@@ -69,6 +94,12 @@ export function refreshCallCount() {
   return state.refreshCalls
 }
 
+/** Connects (or with null, disconnects) GitHub for the demo user. */
+export function setDemoGitHub(link: GitHubLink | null) {
+  const account = state.accounts.get(DEMO_USER.id)
+  if (account) account.github = link ?? undefined
+}
+
 /** The stored password of the demo account (to check a password change). */
 export function demoAccountPassword() {
   return state.accounts.get(DEMO_USER.id)?.password
@@ -80,7 +111,9 @@ function error(
   path: string,
   errors?: ApiError['errors'],
 ): HttpResponse<ApiError> {
-  const reason = { 400: 'Bad Request', 401: 'Unauthorized', 409: 'Conflict' }[status] ?? 'Error'
+  const reason =
+    { 400: 'Bad Request', 401: 'Unauthorized', 409: 'Conflict' }[status as 400 | 401 | 409] ??
+    'Error'
   return HttpResponse.json(
     { timestamp: new Date().toISOString(), status, error: reason, message, path, errors },
     { status },
@@ -116,7 +149,7 @@ export const authHandlers = [
   http.post(`${API_BASE_URL}/api/auth/login`, async ({ request }) => {
     const { email, password } = (await request.json()) as { email: string; password: string }
     const account = findByEmail(email)
-    if (!account || account.password !== password) {
+    if (!account || account.password === null || account.password !== password) {
       return error(401, 'Invalid email or password', '/api/auth/login')
     }
     return signIn(account)
@@ -133,6 +166,7 @@ export const authHandlers = [
       email: body.email.trim().toLowerCase(),
       role: 'ROLE_USER',
       createdAt: new Date().toISOString(),
+      hasPassword: true,
     }
     state.accounts.set(user.id, { user, password: body.password })
     return HttpResponse.json(user, { status: 201 })
@@ -170,6 +204,13 @@ export const authHandlers = [
     const email = body.email.trim().toLowerCase()
 
     if (email !== account.user.email) {
+      if (account.password === null) {
+        return fieldError(
+          'currentPassword',
+          'Set a password in Settings → Security before changing your email',
+          '/api/profile',
+        )
+      }
       if (!body.currentPassword) {
         return fieldError(
           'currentPassword',
@@ -191,13 +232,62 @@ export const authHandlers = [
   http.put(`${API_BASE_URL}/api/profile/password`, async ({ request }) => {
     const account = authenticated(request)
     if (!account) return expired('/api/profile/password')
-    const body = (await request.json()) as { currentPassword: string; newPassword: string }
+    const body = (await request.json()) as { currentPassword?: string; newPassword: string }
 
-    if (body.currentPassword !== account.password) {
+    // A GitHub-only account sets its first password without a current one.
+    if (account.password !== null && body.currentPassword !== account.password) {
       return fieldError('currentPassword', 'Current password is incorrect', '/api/profile/password')
     }
     account.password = body.newPassword
+    account.user = { ...account.user, hasPassword: true }
     state.accessTokens.clear() // every other session ends…
     return signIn(account) // …and this device gets a fresh one
+  }),
+
+  http.get(`${API_BASE_URL}/api/github/connection`, ({ request }) => {
+    const account = authenticated(request)
+    if (!account) return expired('/api/github/connection')
+    const github = account.github
+    return HttpResponse.json(
+      github
+        ? {
+            connected: true,
+            username: github.username,
+            avatarUrl: null,
+            profileUrl: `https://github.com/${github.username}`,
+            connectedAt: '2026-10-20T08:00:00Z',
+            installed: github.installed,
+            manageRepositoriesUrl: github.installed
+              ? 'https://github.com/settings/installations/555'
+              : null,
+          }
+        : { connected: false, installed: false },
+    )
+  }),
+
+  http.post(`${API_BASE_URL}/api/github/connect`, ({ request }) =>
+    authenticated(request)
+      ? HttpResponse.json({ url: GITHUB_AUTHORIZE_URL })
+      : expired('/api/github/connect'),
+  ),
+
+  http.post(`${API_BASE_URL}/api/github/install`, ({ request }) =>
+    authenticated(request)
+      ? HttpResponse.json({ url: GITHUB_INSTALL_URL })
+      : expired('/api/github/install'),
+  ),
+
+  http.delete(`${API_BASE_URL}/api/github/connection`, ({ request }) => {
+    const account = authenticated(request)
+    if (!account) return expired('/api/github/connection')
+    if (account.password === null) {
+      return error(
+        409,
+        'Set a password in Settings → Security before disconnecting GitHub, otherwise you won’t be able to sign in.',
+        '/api/github/connection',
+      )
+    }
+    account.github = undefined
+    return new HttpResponse(null, { status: 204 })
   }),
 ]

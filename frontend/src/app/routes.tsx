@@ -6,6 +6,8 @@ import { NAV_ITEMS } from '@/components/layout/navigation'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { RegisterPage } from '@/features/auth/pages/RegisterPage'
 import { GuestOnly, RequireAuth } from '@/features/auth/routeGuards'
+import { GitHubCallbackPage } from '@/features/github/GitHubCallbackPage'
+import { GitHubSettingsPage } from '@/features/settings/pages/GitHubSettingsPage'
 import { ProfileSettingsPage } from '@/features/settings/pages/ProfileSettingsPage'
 import { SecuritySettingsPage } from '@/features/settings/pages/SecuritySettingsPage'
 import { SettingsLayout } from '@/features/settings/SettingsLayout'
@@ -33,6 +35,8 @@ export const routes: RouteObject[] = [
           },
         ],
       },
+      // GitHub sends the browser back here, signed in or not (outside the guards).
+      { path: '/github/callback', element: <GitHubCallbackPage /> },
       // Everything else needs a signed-in user.
       {
         element: <RequireAuth />,
@@ -54,6 +58,7 @@ export const routes: RouteObject[] = [
                   { index: true, element: <Navigate to="profile" replace /> },
                   { path: 'profile', element: <ProfileSettingsPage /> },
                   { path: 'security', element: <SecuritySettingsPage /> },
+                  { path: 'github', element: <GitHubSettingsPage /> },
                 ],
               },
               { path: '*', element: <NotFoundPage /> },

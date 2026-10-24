@@ -15,7 +15,8 @@ export async function updateProfile(body: ProfileUpdateBody): Promise<User> {
  * The backend signs out every other device and starts a new session for
  * this one: a new access token in the body and a new refresh cookie.
  */
-export async function changePassword(body: ChangePasswordBody): Promise<void> {
+export async function changePassword(body: ChangePasswordBody): Promise<User> {
   const session = unwrap(await api.PUT('/api/profile/password', { body }))
   setAccessToken(session.accessToken)
+  return session.user
 }

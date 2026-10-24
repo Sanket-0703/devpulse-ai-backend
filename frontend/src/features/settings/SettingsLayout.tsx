@@ -3,17 +3,21 @@ import { NavLink, Outlet } from 'react-router'
 import { PageHeader } from '@/components/common/PageHeader'
 import { cn } from '@/lib/utils'
 
-// Later levels add GitHub (Level 4) and Review preferences (Level 9).
+// Level 9 adds Review preferences.
 const SECTIONS = [
   { to: '/settings/profile', label: 'Profile' },
   { to: '/settings/security', label: 'Security' },
+  { to: '/settings/github', label: 'GitHub' },
 ]
 
 /** Settings page frame: title, section tabs, and the section in <Outlet />. */
 export function SettingsLayout() {
   return (
     <>
-      <PageHeader title="Settings" description="Your account, password and sessions." />
+      <PageHeader
+        title="Settings"
+        description="Your account, password, sessions and GitHub connection."
+      />
 
       <nav aria-label="Settings sections" className="mb-6 flex gap-1 border-b">
         {SECTIONS.map(({ to, label }) => (
