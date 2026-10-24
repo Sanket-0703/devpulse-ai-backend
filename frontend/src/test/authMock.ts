@@ -34,7 +34,7 @@ export const OTHER_USER: User = {
 }
 
 /** password null = account created with "Sign in with GitHub" and no password set yet. */
-type Account = { user: User; password: string | null; github?: GitHubLink }
+export type Account = { user: User; password: string | null; github?: GitHubLink }
 
 type GitHubLink = { username: string; installed: boolean }
 
@@ -105,7 +105,7 @@ export function demoAccountPassword() {
   return state.accounts.get(DEMO_USER.id)?.password
 }
 
-function error(
+export function error(
   status: number,
   message: string,
   path: string,
@@ -137,7 +137,7 @@ function signIn(account: Account) {
 }
 
 /** The account behind the request's Bearer token, or undefined (→ 401). */
-function authenticated(request: Request): Account | undefined {
+export function authenticated(request: Request): Account | undefined {
   const token = request.headers.get('Authorization')?.replace('Bearer ', '') ?? ''
   const userId = state.accessTokens.get(token)
   return userId === undefined ? undefined : state.accounts.get(userId)
