@@ -12,6 +12,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { errorMessage } from '@/lib/api/errors'
 
+import { GitHubSignInButton } from '@/features/github/GitHubSignInButton'
+
 import { useAuth } from '../authContext'
 import { type LoginValues, loginSchema } from '../schemas'
 
@@ -48,6 +50,8 @@ export function LoginPage() {
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} noValidate className="grid gap-4">
+          <GitHubSignInButton />
+
           {formError && (
             <Alert variant="destructive">
               <CircleAlertIcon />

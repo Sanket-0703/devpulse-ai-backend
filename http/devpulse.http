@@ -1,0 +1,50 @@
+### DevPulse API by hand — IntelliJ HTTP Client
+# Pick the "local" environment (top of the editor), then click ▶ next to a request.
+# Cookies are kept between requests, like a browser, so /refresh works after /login.
+# Put your own test account below (never commit real passwords).
+
+@email = you@example.com
+@password = your-password
+
+### Sign in — stores the access token for the requests below
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+  client.global.set("accessToken", response.body.accessToken);
+  client.test("signed in", () => client.assert(response.status === 200));
+%}
+
+### Who am I?
+GET {{host}}/api/auth/me
+Authorization: Bearer {{accessToken}}
+
+### New access token from the refresh cookie (rotates the cookie)
+POST {{host}}/api/auth/refresh
+
+> {% client.global.set("accessToken", response.body.accessToken); %}
+
+### GitHub connection status
+GET {{host}}/api/github/connection
+Authorization: Bearer {{accessToken}}
+
+### Start connecting GitHub — open the returned URL in a browser
+POST {{host}}/api/github/connect
+Authorization: Bearer {{accessToken}}
+
+### "Sign in with GitHub" — look at the Location header of the 302
+# @no-redirect
+GET {{host}}/api/auth/github
+
+### A bad token gives a JSON 401, never a 500
+GET {{host}}/api/auth/me
+Authorization: Bearer not-a-real-token
+
+### Sign out
+POST {{host}}/api/auth/logout
+Authorization: Bearer {{accessToken}}

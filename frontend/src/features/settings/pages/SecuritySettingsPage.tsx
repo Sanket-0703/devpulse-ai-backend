@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { CircleAlertIcon, Loader2Icon, LogOutIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 
@@ -27,7 +27,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { useAuth } from '@/features/auth/authContext'
+import { useAuth, useCurrentUser } from '@/features/auth/authContext'
 import { errorMessage } from '@/lib/api/errors'
 import { applyServerFieldErrors } from '@/lib/forms'
 
@@ -46,7 +46,12 @@ export function SecuritySettingsPage() {
 }
 
 function ChangePasswordCard() {
+  const user = useCurrentUser()
+  const { updateUser } = useAuth()
   const [formError, setFormError] = useState<string | null>(null)
+  // Accounts created with "Sign in with GitHub" set their first password here.
+  const hasPassword = user.hasPassword
+  const schema = useMemo(() => changePasswordSchema(hasPassword), [hasPassword])
 
   const {
     register,
@@ -55,16 +60,24 @@ function ChangePasswordCard() {
     reset,
     formState: { errors, isSubmitting },
   } = useForm<ChangePasswordValues>({
-    resolver: zodResolver(changePasswordSchema),
+    resolver: zodResolver(schema),
     defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
   })
 
   const onSubmit = handleSubmit(async ({ currentPassword, newPassword }) => {
     setFormError(null)
     try {
-      await changePassword({ currentPassword, newPassword })
+      const updated = await changePassword({
+        currentPassword: hasPassword ? currentPassword : undefined,
+        newPassword,
+      })
+      updateUser(updated)
       reset()
-      toast.success('Password changed. Your other devices have been signed out.')
+      toast.success(
+        hasPassword
+          ? 'Password changed. Your other devices have been signed out.'
+          : 'Password set. You can now also sign in with your email and password.',
+      )
     } catch (error) {
       if (applyServerFieldErrors(error, setError, SERVER_FIELDS)) return
       setFormError(errorMessage(error))
@@ -77,10 +90,12 @@ function ChangePasswordCard() {
       <form onSubmit={onSubmit} noValidate className="contents">
         <CardHeader>
           <CardTitle>
-            <h2>Change password</h2>
+            <h2>{hasPassword ? 'Change password' : 'Set a password'}</h2>
           </CardTitle>
           <CardDescription>
-            You stay signed in here; every other device is signed out.
+            {hasPassword
+              ? 'You stay signed in here; every other device is signed out.'
+              : 'You signed up with GitHub. Add a password to also sign in with your email.'}
           </CardDescription>
         </CardHeader>
 
@@ -92,9 +107,11 @@ function ChangePasswordCard() {
             </Alert>
           )}
 
-          <FormField label="Current password" error={errors.currentPassword?.message}>
-            <PasswordInput autoComplete="current-password" {...register('currentPassword')} />
-          </FormField>
+          {hasPassword && (
+            <FormField label="Current password" error={errors.currentPassword?.message}>
+              <PasswordInput autoComplete="current-password" {...register('currentPassword')} />
+            </FormField>
+          )}
 
           <FormField
             label="New password"
@@ -112,7 +129,7 @@ function ChangePasswordCard() {
         <CardFooter className="justify-end">
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting && <Loader2Icon className="animate-spin" />}
-            Change password
+            {hasPassword ? 'Change password' : 'Set password'}
           </Button>
         </CardFooter>
       </form>

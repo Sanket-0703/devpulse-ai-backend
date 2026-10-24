@@ -10,8 +10,8 @@ import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 @Data
 public class ChangePasswordRequest {
 
-    @Schema(requiredMode = REQUIRED)
-    @NotBlank(message = "Current password is required")
+    /** Required unless the account has no password yet (created with "Sign in with GitHub"). */
+    @Schema(description = "Required unless the account has no password yet")
     private String currentPassword;
 
     // Same rule as RegisterRequest: bcrypt only uses the first 72 bytes.

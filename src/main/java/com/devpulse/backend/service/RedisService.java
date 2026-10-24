@@ -16,5 +16,8 @@ public interface RedisService {
 
     void delete(String key);
 
+    /** Atomically reads and removes a key (Redis GETDEL): for single-use values. */
+    String getAndDelete(String key);
+
     Long getTtl(String key);
 }

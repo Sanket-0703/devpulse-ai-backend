@@ -77,6 +77,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/github/install": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start installing the DevPulse app on your repositories
+         * @description Returns GitHub's install URL (you choose the repositories there).
+         */
+        post: operations["install"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/github/connect": {
         parameters: {
             query?: never;
@@ -86,7 +106,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["connectGitHub"];
+        /**
+         * Start connecting GitHub to your account
+         * @description Returns the GitHub URL to send the browser to. The link is bound to you and valid for 10 minutes.
+         */
+        post: operations["connect"];
         delete?: never;
         options?: never;
         head?: never;
@@ -392,6 +416,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * GitHub OAuth callback
+         * @description GitHub redirects here. Always redirects on to the frontend's /github/callback with result=signed-in|connected|error (and reason=… on error).
+         */
         get: operations["callback"];
         put?: never;
         post?: never;
@@ -401,17 +429,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/github/oauth/authorize": {
+    "/api/github/connection": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["authorize"];
+        /** Your GitHub connection status */
+        get: operations["status"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Disconnect GitHub
+         * @description Revokes DevPulse's access on GitHub and removes the link. 409 if the account has no password (you'd be locked out).
+         */
+        delete: operations["disconnect"];
         options?: never;
         head?: never;
         patch?: never;
@@ -426,6 +459,26 @@ export interface paths {
         };
         /** The signed-in user */
         get: operations["me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/github": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sign in with GitHub
+         * @description Open in the browser (a link, not fetch). Redirects to GitHub's authorize page.
+         */
+        get: operations["signIn"];
         put?: never;
         post?: never;
         delete?: never;
@@ -466,22 +519,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/github/disconnect": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["disconnectGitHub"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -505,9 +542,12 @@ export interface components {
              * @description When the account was created (UTC)
              */
             createdAt: string;
+            /** @description False for accounts created with Sign in with GitHub until a password is set */
+            hasPassword: boolean;
         };
         ChangePasswordRequest: {
-            currentPassword: string;
+            /** @description Required unless the account has no password yet */
+            currentPassword?: string;
             newPassword: string;
         };
         AuthResponse: {
@@ -522,19 +562,8 @@ export interface components {
             expiresIn: number;
             user: components["schemas"]["UserResponse"];
         };
-        ConnectGitHubRequest: {
-            /** Format: int64 */
-            githubId: number;
-            username: string;
-            accessToken: string;
-            avatarUrl?: string;
-        };
-        GitHubAccountResponse: {
-            /** Format: int64 */
-            githubId?: number;
-            username?: string;
-            avatarUrl?: string;
-            connected?: boolean;
+        UrlResponse: {
+            url: string;
         };
         RegisterRequest: {
             name: string;
@@ -567,15 +596,17 @@ export interface components {
             /** Format: int64 */
             githubId?: number;
             username?: string;
-            accessToken?: string;
             avatarUrl?: string;
-            /** Format: date-time */
-            connectedAt?: string;
-            refreshToken?: string;
+            accessToken?: string;
             /** Format: date-time */
             accessTokenExpiresAt?: string;
+            refreshToken?: string;
             /** Format: date-time */
             refreshTokenExpiresAt?: string;
+            /** Format: int64 */
+            installationId?: number;
+            /** Format: date-time */
+            connectedAt?: string;
             user?: components["schemas"]["User"];
             repositories?: components["schemas"]["GitHubRepository"][];
         };
@@ -662,6 +693,19 @@ export interface components {
             defaultBranch?: string;
             language?: string;
             private?: boolean;
+        };
+        GitHubConnectionResponse: {
+            connected: boolean;
+            username?: string;
+            avatarUrl?: string;
+            /** @description https://github.com/<username> */
+            profileUrl?: string;
+            /** Format: date-time */
+            connectedAt?: string;
+            /** @description Whether the DevPulse app is installed on any of the user's repositories */
+            installed: boolean;
+            /** @description GitHub page for choosing which repositories DevPulse can see; null if not installed */
+            manageRepositoriesUrl?: string;
         };
         ErrorResponse: {
             /** Format: date-time */
@@ -801,18 +845,14 @@ export interface operations {
             };
         };
     };
-    connectGitHub: {
+    install: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConnectGitHubRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -820,7 +860,27 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["GitHubAccountResponse"];
+                    "*/*": components["schemas"]["UrlResponse"];
+                };
+            };
+        };
+    };
+    connect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UrlResponse"];
                 };
             };
         };
@@ -1239,9 +1299,12 @@ export interface operations {
     };
     callback: {
         parameters: {
-            query: {
-                code: string;
-                state: string;
+            query?: {
+                code?: string;
+                state?: string;
+                installation_id?: number;
+                setup_action?: string;
+                error?: string;
             };
             header?: never;
             path?: never;
@@ -1254,13 +1317,11 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "*/*": string;
-                };
+                content?: never;
             };
         };
     };
-    authorize: {
+    status: {
         parameters: {
             query?: never;
             header?: never;
@@ -1275,8 +1336,26 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": string;
+                    "*/*": components["schemas"]["GitHubConnectionResponse"];
                 };
+            };
+        };
+    };
+    disconnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -1297,6 +1376,24 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["UserResponse"];
                 };
+            };
+        };
+    };
+    signIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -1327,24 +1424,6 @@ export interface operations {
             path: {
                 key: string;
             };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    disconnectGitHub: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
             cookie?: never;
         };
         requestBody?: never;

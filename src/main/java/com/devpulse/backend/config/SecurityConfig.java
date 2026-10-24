@@ -57,8 +57,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST,
                                 "/api/auth/register", "/api/auth/login",
                                 "/api/auth/refresh", "/api/auth/logout").permitAll()
-                        .requestMatchers("/api/github/oauth/callback").permitAll()
-                        .requestMatchers("/api/github/oauth/authorize").authenticated()
+                        // Visited by the browser itself during GitHub sign-in (no token).
+                        .requestMatchers(HttpMethod.GET, "/api/auth/github", "/api/github/oauth/callback").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated()

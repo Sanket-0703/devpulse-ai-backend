@@ -62,6 +62,11 @@ public class ProfileServiceImpl implements ProfileService {
 
     private void requireCurrentPassword(User user, String currentPassword) {
 
+        if (user.getPassword() == null) {
+            throw new FieldValidationException("currentPassword",
+                    "Set a password in Settings → Security before changing your email");
+        }
+
         if (currentPassword == null || currentPassword.isBlank()) {
             throw new FieldValidationException("currentPassword",
                     "Enter your current password to change your email");
