@@ -10,4 +10,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class S3Properties {
 
     private String bucketName;
+    private String region;
 }

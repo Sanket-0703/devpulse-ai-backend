@@ -7,6 +7,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 
@@ -19,6 +20,8 @@ public class CustomUserPrincipal implements UserDetails {
     private String email;
     private String password;
     private Role role;
+    /** See {@link com.devpulse.backend.entity.User#getTokensValidAfter()}. */
+    private Instant tokensValidAfter;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

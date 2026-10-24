@@ -1,0 +1,70 @@
+# Local development infrastructure: PostgreSQL (with pgvector) and Redis.
+# Run the backend from the IDE or ./mvnw against these services:
+#
+#   docker compose -f compose.dev.yaml up -d
+#
+# Credentials come from .env (see .env.example).
+
+name: devpulse-dev
+
+services:
+
+  # ==========================================
+  # PostgreSQL + pgvector
+  # ==========================================
+
+  postgres:
+    image: pgvector/pgvector:pg17
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+
+    ports:
+      - "127.0.0.1:${DB_PORT:-5433}:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    restart: unless-stopped
+
+
+  # ==========================================
+  # Redis
+  # ==========================================
+
+  redis:
+    image: redis:7.4.10
+
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "redis-cli",
+          "ping"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    restart: unless-stopped
+
+
+volumes:
+
+  postgres_data:
