@@ -5,14 +5,15 @@ import { Link } from 'react-router'
 import { EmptyState } from '@/components/common/EmptyState'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Pagination } from '@/components/common/Pagination'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { timeAgo } from '@/lib/time'
 import { cn } from '@/lib/utils'
 
-import { type AIUsage, formatCost } from '../api'
+import { formatCost } from '../api'
 import { FindingCountBadges, ReviewStatusBadge } from '../components'
 import { useReviews, useUsage } from '../hooks'
+import { UsageCards } from '../UsageCards'
 
 /** Every review you ran, newest first, with today's usage against your limits. */
 export function ReviewsPage() {
@@ -80,39 +81,5 @@ export function ReviewsPage() {
         </>
       )}
     </>
-  )
-}
-
-function UsageCards({ usage }: { usage: AIUsage }) {
-  const usd = (value: number) => `$${value.toFixed(value < 1 ? 4 : 2)}`
-  const items = [
-    {
-      label: 'Reviews today',
-      value: `${usage.reviewsToday} of ${usage.dailyReviewLimit}`,
-    },
-    {
-      label: 'Cost today',
-      value: `${usd(usage.costTodayUsd)} of ${usd(usage.dailyCostLimitUsd)}`,
-    },
-    {
-      label: 'This month',
-      value: `${usage.reviewsThisMonth} reviews · ${usage.tokensThisMonth.toLocaleString()} tokens`,
-    },
-    {
-      label: 'Model',
-      value: usage.provider === 'mock' ? 'Mock AI (free)' : `${usage.provider} · ${usage.model}`,
-    },
-  ]
-  return (
-    <section aria-label="AI usage" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-      {items.map((item) => (
-        <Card key={item.label} className="py-4">
-          <CardContent className="space-y-1 px-4">
-            <p className="text-muted-foreground text-xs">{item.label}</p>
-            <p className="text-sm font-semibold">{item.value}</p>
-          </CardContent>
-        </Card>
-      ))}
-    </section>
   )
 }

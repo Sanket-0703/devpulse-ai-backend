@@ -4,6 +4,8 @@ import { setupServer } from 'msw/node'
 import { API_BASE_URL } from '@/lib/api/config'
 
 import { authHandlers } from './authMock'
+import { dashboardHandlers } from './dashboardMock'
+import { playgroundHandlers } from './playgroundMock'
 import { pullRequestsHandlers } from './pullRequestsMock'
 import { repositoriesHandlers } from './repositoriesMock'
 import { reviewsHandlers } from './reviewsMock'
@@ -15,6 +17,8 @@ export const handlers = [
   ...repositoriesHandlers,
   ...pullRequestsHandlers,
   ...reviewsHandlers,
+  ...dashboardHandlers,
+  ...playgroundHandlers,
 ]
 
 export const server = setupServer(...handlers)
