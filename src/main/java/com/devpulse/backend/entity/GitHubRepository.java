@@ -76,6 +76,9 @@ public class GitHubRepository extends BaseEntity {
     @Column(nullable = false)
     private boolean reviewEnabled;
 
+    /** When this repository's pull requests were last synced; null = never. */
+    private Instant pullRequestsSyncedAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "github_account_id", nullable = false)
     private GitHubAccount githubAccount;

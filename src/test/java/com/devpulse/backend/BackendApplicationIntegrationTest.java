@@ -57,7 +57,7 @@ class BackendApplicationIntegrationTest extends AbstractIntegrationTest {
                 Integer.class
         );
 
-        assertThat(versions).containsExactly("1", "2", "3", "4", "5", "6");
+        assertThat(versions).containsExactly("1", "2", "3", "4", "5", "6", "7");
         assertThat(vectorExtensions).isEqualTo(1);
     }
 

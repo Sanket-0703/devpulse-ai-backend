@@ -363,6 +363,69 @@ It isn't included in production builds.
 
 ---
 
+## Level 6 — Queries, caches and moving code
+
+Level 6 adds a filtered list query backed by indexes, a Redis cache keyed by commit, and code moved between files. These are the tools for each.
+
+### IntelliJ HTTP Client: the pull request endpoints
+
+`http/devpulse.http` now has requests for repositories and pull requests. Sign in first (the *Sign in* request stores `accessToken`), then:
+1. Run **My repositories** and note an `id`.
+2. Set `repositoryId` and `prNumber` in `http/http-client.env.json` (the `local` environment).
+3. Run **Sync pull requests**, then **Pull request files** twice. The second answer comes from Redis; the backend log shows no GitHub call for it.
+
+### IntelliJ Database: is the index used?
+
+In a console on the `devpulse_ai` data source (`⇧⌘L` on the data source → *New Query Console*):
+
+```sql
+EXPLAIN ANALYZE
+SELECT * FROM pull_requests
+WHERE github_repository_id = 2 AND state = 'MERGED'
+ORDER BY github_updated_at DESC
+LIMIT 20;
+```
+
+With a handful of rows Postgres may still pick a sequential scan (it's cheaper for tiny tables). The plan is what to look at: `Index Scan using idx_pull_requests_repository_state_updated` is what you'll see once a table is big. Hover over a plan node for its cost.
+
+### Redis: the diff cache
+
+```bash
+redis-cli --scan --pattern 'cache:github:pr-files:*'
+```
+
+```bash
+redis-cli strlen 'cache:github:pr-files:<repo github id>:<number>:<sha>'
+```
+
+The key ends with the head commit's sha, so a new push means a new key; the old one just expires (TTL 1 hour, see `redis-cli ttl …`). `lock:github:pr-sync:*` exists only while a sync runs.
+
+### IntelliJ: refactoring safely
+
+| Action | How |
+|---|---|
+| Rename a class/method/field everywhere | `⇧F6` on the name (this level renamed `File` to `ChangedFile`) |
+| Move a method to another class | `F6` on the method (how `escapeLike` could move into `SqlLike`) |
+| Extract a superclass | *Refactor → Extract → Superclass* (the idea behind `GitHubAppIntegrationTest`) |
+| Remove unused imports | `⌃⌥O` (*Optimize Imports*); or tick it in the commit dialog |
+| See who calls something | `⌥F7` (*Find Usages*) |
+
+### VS Code: moving a component to a shared file
+
+`SegmentedControl` and `Pagination` moved from the repositories page to `components/common`:
+1. Select the function → light bulb (`⌘.`) → **Move to a new file**. VS Code creates the file and fixes the imports.
+2. `⇧F12` (*Find All References*) confirms every user now imports the shared copy.
+3. `F2` renames a symbol in every file that uses it.
+
+### Browser DevTools: watch the caching
+
+Open a pull request with the **Network** tab open, filtered to `files`:
+- the first visit sends `GET …/pull-requests/7/files`;
+- going back and opening it again within 5 minutes sends **nothing**: TanStack Query's `staleTime` serves it from memory;
+- after 5 minutes it refetches, and the backend answers from Redis without calling GitHub.
+
+In the **Elements** tab, each file is a `<details>` element: toggling it adds or removes the `open` attribute, with no JavaScript involved.
+
 ## Reviewing and committing changes (IntelliJ)
 
 Use IntelliJ for Git: it opens the whole repo (backend, frontend, docs) and has the best diff viewer.

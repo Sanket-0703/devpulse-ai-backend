@@ -77,6 +77,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/github/repositories/{repositoryId}/pull-requests/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync this repository's pull requests from GitHub
+         * @description Waits for the sync to finish. Only what changed since the last sync is fetched. 409 if a sync is already running or the app isn't installed; 502 if GitHub fails.
+         */
+        post: operations["sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/github/repositories/sync": {
         parameters: {
             query?: never;
@@ -91,7 +111,7 @@ export interface paths {
          * Sync repositories from GitHub now
          * @description Starts a background sync (202). Poll GET /sync for the result. 409 if GitHub isn't connected or the app isn't installed; 429 more than once a minute.
          */
-        post: operations["sync"];
+        post: operations["sync_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -340,30 +360,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/github/pull-requests/{id}": {
+    "/api/github/repositories/{repositoryId}/pull-requests": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getPullRequestById"];
-        put?: never;
-        post?: never;
-        delete: operations["deletePullRequest"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/github/pull-requests/repository/{repositoryId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getPullRequestsByRepository"];
+        /** A repository's pull requests, most recent activity first */
+        get: operations["list_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -372,14 +377,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/github/pull-requests/repository/{repositoryId}/state/{state}": {
+    "/api/github/repositories/{repositoryId}/pull-requests/{number}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getPullRequestsByState"];
+        /** One pull request, with its description */
+        get: operations["get_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -388,30 +394,18 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/github/pull-requests/repository/{repositoryId}/number/{number}": {
+    "/api/github/repositories/{repositoryId}/pull-requests/{number}/files": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getPullRequestByNumber"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/github/pull-requests/github/{githubId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getPullRequestByGithubId"];
+        /**
+         * The files a pull request changes, with their diffs
+         * @description Fetched from GitHub and cached per commit. 502 if GitHub fails.
+         */
+        get: operations["files"];
         put?: never;
         post?: never;
         delete?: never;
@@ -573,6 +567,20 @@ export interface components {
             expiresIn: number;
             user: components["schemas"]["UserResponse"];
         };
+        PullRequestSyncResponse: {
+            /**
+             * Format: int32
+             * @description Pull requests created or updated by this sync
+             */
+            updated: number;
+            /**
+             * Format: int64
+             * @description Pull requests stored for this repository
+             */
+            total: number;
+            /** Format: date-time */
+            syncedAt: string;
+        };
         SyncStatusResponse: {
             connected: boolean;
             installed: boolean;
@@ -639,6 +647,11 @@ export interface components {
             syncedAt: string;
             /** @description Whether DevPulse reviews this repository's pull requests */
             reviewEnabled: boolean;
+            /**
+             * Format: date-time
+             * @description When its pull requests were last synced; null = never
+             */
+            pullRequestsSyncedAt?: string;
         };
         PageResponseRepositoryResponse: {
             content: components["schemas"]["RepositoryResponse"][];
@@ -651,106 +664,74 @@ export interface components {
             /** Format: int32 */
             totalPages: number;
         };
-        GitHubAccount: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-            /** Format: int64 */
-            githubId?: number;
-            username?: string;
-            avatarUrl?: string;
-            accessToken?: string;
-            /** Format: date-time */
-            accessTokenExpiresAt?: string;
-            refreshToken?: string;
-            /** Format: date-time */
-            refreshTokenExpiresAt?: string;
-            /** Format: int64 */
-            installationId?: number;
-            /** Format: date-time */
-            connectedAt?: string;
-            /** @enum {string} */
-            syncStatus?: "NEVER" | "RUNNING" | "SUCCEEDED" | "FAILED";
-            /** Format: date-time */
-            lastSyncedAt?: string;
-            syncError?: string;
-            user?: components["schemas"]["User"];
-            repositories?: components["schemas"]["GitHubRepository"][];
-        };
-        GitHubRepository: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-            /** Format: int64 */
-            githubId?: number;
-            name?: string;
-            fullName?: string;
-            description?: string;
-            fork?: boolean;
-            archived?: boolean;
-            htmlUrl?: string;
-            defaultBranch?: string;
-            language?: string;
-            /** Format: date-time */
-            pushedAt?: string;
-            /** Format: date-time */
-            syncedAt?: string;
-            reviewEnabled?: boolean;
-            githubAccount?: components["schemas"]["GitHubAccount"];
-            pullRequests?: components["schemas"]["PullRequest"][];
-            private?: boolean;
-        };
-        PullRequest: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-            /** Format: int64 */
-            githubId?: number;
+        PageResponsePullRequestResponse: {
+            content: components["schemas"]["PullRequestResponse"][];
             /** Format: int32 */
-            number?: number;
-            title?: string;
-            description?: string;
+            page: number;
+            /** Format: int32 */
+            size: number;
+            /** Format: int64 */
+            totalElements: number;
+            /** Format: int32 */
+            totalPages: number;
+        };
+        PullRequestResponse: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int32 */
+            number: number;
+            title: string;
             /** @enum {string} */
-            state?: "OPEN" | "CLOSED";
-            sourceBranch?: string;
-            targetBranch?: string;
-            htmlUrl?: string;
-            authorUsername?: string;
-            merged?: boolean;
+            state: "OPEN" | "CLOSED" | "MERGED";
+            draft: boolean;
+            authorLogin: string;
+            authorAvatarUrl?: string;
+            /** @description The branch with the changes */
+            sourceBranch: string;
+            /** @description The branch it merges into */
+            targetBranch: string;
+            headSha: string;
+            htmlUrl: string;
             /** Format: date-time */
-            openedAt?: string;
+            openedAt: string;
+            /**
+             * Format: date-time
+             * @description Last activity on GitHub
+             */
+            updatedAt: string;
             /** Format: date-time */
             closedAt?: string;
             /** Format: date-time */
             mergedAt?: string;
-            /** Format: date-time */
-            syncedAt?: string;
-            githubRepository?: components["schemas"]["GitHubRepository"];
         };
-        User: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-            name?: string;
-            email?: string;
-            password?: string;
-            /** @enum {string} */
-            role?: "ROLE_USER" | "ROLE_ADMIN";
-            /** Format: date-time */
-            tokensValidAfter?: string;
-            githubAccount?: components["schemas"]["GitHubAccount"];
+        PullRequestDetailResponse: {
+            pullRequest: components["schemas"]["PullRequestResponse"];
+            /** @description The PR description (Markdown), null if empty */
+            body?: string;
+        };
+        ChangedFile: {
+            filename: string;
+            /** @description The old path, for renamed files */
+            previousFilename?: string;
+            /**
+             * @description added, removed, modified, renamed, copied, changed or unchanged
+             * @example modified
+             */
+            status: string;
+            /** Format: int32 */
+            additions: number;
+            /** Format: int32 */
+            deletions: number;
+            /** @description Unified diff; null for binary files and diffs too large for GitHub to show */
+            patch?: string;
+            blobUrl?: string;
+        };
+        PullRequestFilesResponse: {
+            /** @description The commit these diffs belong to */
+            headSha: string;
+            files: components["schemas"]["ChangedFile"][];
+            /** @description True if the PR changes more files than are listed */
+            truncated: boolean;
         };
         GitHubConnectionResponse: {
             connected: boolean;
@@ -903,6 +884,28 @@ export interface operations {
             };
         };
     };
+    sync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                repositoryId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PullRequestSyncResponse"];
+                };
+            };
+        };
+    };
     syncStatus: {
         parameters: {
             query?: never;
@@ -923,7 +926,7 @@ export interface operations {
             };
         };
     };
-    sync: {
+    sync_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -1251,51 +1254,14 @@ export interface operations {
             };
         };
     };
-    getPullRequestById: {
+    list_1: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
+            query?: {
+                state?: "OPEN" | "CLOSED" | "MERGED";
+                q?: string;
+                page?: number;
+                size?: number;
             };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PullRequest"];
-                };
-            };
-        };
-    };
-    deletePullRequest: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    getPullRequestsByRepository: {
-        parameters: {
-            query?: never;
             header?: never;
             path: {
                 repositoryId: number;
@@ -1310,35 +1276,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PullRequest"][];
+                    "*/*": components["schemas"]["PageResponsePullRequestResponse"];
                 };
             };
         };
     };
-    getPullRequestsByState: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                repositoryId: number;
-                state: "OPEN" | "CLOSED";
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PullRequest"][];
-                };
-            };
-        };
-    };
-    getPullRequestByNumber: {
+    get_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -1356,17 +1299,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PullRequest"];
+                    "*/*": components["schemas"]["PullRequestDetailResponse"];
                 };
             };
         };
     };
-    getPullRequestByGithubId: {
+    files: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                githubId: number;
+                repositoryId: number;
+                number: number;
             };
             cookie?: never;
         };
@@ -1378,7 +1322,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PullRequest"];
+                    "*/*": components["schemas"]["PullRequestFilesResponse"];
                 };
             };
         };

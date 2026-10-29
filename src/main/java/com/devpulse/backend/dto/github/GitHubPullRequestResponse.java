@@ -1,11 +1,14 @@
 package com.devpulse.backend.dto.github;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
+/** A pull request as GitHub's REST API lists it (GET /repositories/{id}/pulls). */
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Getter
 @Setter
 public class GitHubPullRequestResponse {
@@ -18,37 +21,50 @@ public class GitHubPullRequestResponse {
 
     private String body;
 
+    /** "open" or "closed"; merged PRs are "closed" with merged_at set. */
     private String state;
+
+    private boolean draft;
 
     @JsonProperty("html_url")
     private String htmlUrl;
 
     @JsonProperty("created_at")
-    private LocalDateTime createdAt;
+    private Instant createdAt;
+
+    @JsonProperty("updated_at")
+    private Instant updatedAt;
 
     @JsonProperty("closed_at")
-    private LocalDateTime closedAt;
+    private Instant closedAt;
 
     @JsonProperty("merged_at")
-    private LocalDateTime mergedAt;
+    private Instant mergedAt;
 
-    private UserResponse user;
+    private User user;
 
-    @JsonProperty("head")
-    private BranchResponse head;
+    private Branch head;
 
-    @JsonProperty("base")
-    private BranchResponse base;
+    private Branch base;
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     @Getter
     @Setter
-    public static class UserResponse {
+    public static class User {
+
         private String login;
+
+        @JsonProperty("avatar_url")
+        private String avatarUrl;
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     @Getter
     @Setter
-    public static class BranchResponse {
+    public static class Branch {
+
         private String ref;
+
+        private String sha;
     }
 }

@@ -127,8 +127,8 @@ Decision: **GitHub App** (fine-grained permissions, per-repo install, expiring t
 
 ## Level 6 — Pull requests
 
-- [ ] BE: PR sync, paged PR list per repo, PR detail, changed files + diff
-- [ ] FE: PR list (open / closed / merged) and PR detail with the diff
+- [x] BE: PR sync, paged PR list per repo, PR detail, changed files + diff
+- [x] FE: PR list (open / closed / merged) and PR detail with the diff
 
 **Check:** open a repo, browse its PRs, view a PR's changed files.
 

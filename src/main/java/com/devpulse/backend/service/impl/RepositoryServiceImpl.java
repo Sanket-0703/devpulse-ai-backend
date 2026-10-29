@@ -1,5 +1,6 @@
 package com.devpulse.backend.service.impl;
 
+import com.devpulse.backend.common.SqlLike;
 import com.devpulse.backend.dto.PageResponse;
 import com.devpulse.backend.dto.github.RepositoryResponse;
 import com.devpulse.backend.entity.GitHubRepository;
@@ -12,7 +13,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Locale;
 
 @Service
 public class RepositoryServiceImpl implements RepositoryService {
@@ -80,10 +80,10 @@ public class RepositoryServiceImpl implements RepositoryService {
         if (query == null || query.isBlank()) {
             return null; // "no condition"
         }
-        String pattern = "%" + escapeLike(query.trim().toLowerCase(Locale.ROOT)) + "%";
+        String pattern = SqlLike.containsPattern(query);
         return (root, q, cb) -> cb.or(
-                cb.like(cb.lower(root.get("fullName")), pattern, '\\'),
-                cb.like(cb.lower(cb.coalesce(root.get("description"), "")), pattern, '\\'));
+                cb.like(cb.lower(root.get("fullName")), pattern, SqlLike.ESCAPE),
+                cb.like(cb.lower(cb.coalesce(root.get("description"), "")), pattern, SqlLike.ESCAPE));
     }
 
     private static Specification<GitHubRepository> reviewEnabledIs(Boolean reviewEnabled) {
@@ -102,10 +102,5 @@ public class RepositoryServiceImpl implements RepositoryService {
             }
             return null; // ordering only, no filter
         };
-    }
-
-    /** So a search for "50%" or "my_repo" matches those characters literally. */
-    private static String escapeLike(String value) {
-        return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 }

@@ -1,42 +1,25 @@
 package com.devpulse.backend.service;
 
-import com.devpulse.backend.entity.PullRequest;
+import com.devpulse.backend.dto.PageResponse;
+import com.devpulse.backend.dto.github.PullRequestDetailResponse;
+import com.devpulse.backend.dto.github.PullRequestFilesResponse;
+import com.devpulse.backend.dto.github.PullRequestResponse;
 import com.devpulse.backend.entity.PullRequestState;
 
-import java.util.List;
-
-import com.devpulse.backend.entity.GitHubAccount;
-import com.devpulse.backend.entity.GitHubRepository;
-
+/** Reading the signed-in user's pull requests. */
 public interface PullRequestService {
 
-    PullRequest savePullRequest(PullRequest pullRequest);
+    /**
+     * One page of a repository's pull requests, most recent activity first.
+     *
+     * @param state null for every state
+     * @param query matches the title or author; "42" or "#42" also matches #42
+     */
+    PageResponse<PullRequestResponse> list(Long userId, Long repositoryId, PullRequestState state, String query,
+                                           int page, int size);
 
-    PullRequest getPullRequestById(Long id);
+    PullRequestDetailResponse get(Long userId, Long repositoryId, int number);
 
-    PullRequest getPullRequestByGithubId(Long githubId);
-
-    PullRequest getPullRequestByRepositoryAndNumber(
-            Long repositoryId,
-            Integer number
-    );
-
-    List<PullRequest> getPullRequestsByRepository(
-            Long repositoryId
-    );
-
-    List<PullRequest> getPullRequestsByRepositoryAndState(
-            Long repositoryId,
-            PullRequestState state
-    );
-
-    void deletePullRequest(Long id);
-    void synchronizePullRequests(
-            GitHubAccount account,
-            GitHubRepository repository
-    );
-
-    List<PullRequest> getCachedPullRequestsByRepository(
-            Long repositoryId
-    );
+    /** The changed files and their diffs, from GitHub (cached in Redis per commit). */
+    PullRequestFilesResponse files(Long userId, Long repositoryId, int number);
 }

@@ -41,6 +41,34 @@ Authorization: Bearer {{accessToken}}
 # @no-redirect
 GET {{host}}/api/auth/github
 
+### My repositories (search with q=, filter with reviewEnabled=true)
+GET {{host}}/api/github/repositories?page=0&size=20
+Authorization: Bearer {{accessToken}}
+
+### Repository sync status
+GET {{host}}/api/github/repositories/sync
+Authorization: Bearer {{accessToken}}
+
+### Sync repositories now (202; poll the status above)
+POST {{host}}/api/github/repositories/sync
+Authorization: Bearer {{accessToken}}
+
+### Sync pull requests of {{repositoryId}} (only what changed since last time)
+POST {{host}}/api/github/repositories/{{repositoryId}}/pull-requests/sync
+Authorization: Bearer {{accessToken}}
+
+### Pull requests (state=OPEN|MERGED|CLOSED, q=title, author or #number)
+GET {{host}}/api/github/repositories/{{repositoryId}}/pull-requests?state=MERGED&page=0&size=20
+Authorization: Bearer {{accessToken}}
+
+### One pull request, with its description
+GET {{host}}/api/github/repositories/{{repositoryId}}/pull-requests/{{prNumber}}
+Authorization: Bearer {{accessToken}}
+
+### Pull request files — run twice: the second answer comes from Redis
+GET {{host}}/api/github/repositories/{{repositoryId}}/pull-requests/{{prNumber}}/files
+Authorization: Bearer {{accessToken}}
+
 ### A bad token gives a JSON 401, never a 500
 GET {{host}}/api/auth/me
 Authorization: Bearer not-a-real-token

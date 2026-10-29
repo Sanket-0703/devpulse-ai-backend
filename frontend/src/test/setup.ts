@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { setAccessToken } from '@/features/auth/session'
 
 import { resetAuthMock } from './authMock'
+import { resetPullRequestsMock } from './pullRequestsMock'
 import { resetRepositoriesMock } from './repositoriesMock'
 import { server } from './server'
 
@@ -16,6 +17,7 @@ beforeAll(() => server.listen({ onUnhandledFrame: 'error' }))
 beforeEach(() => {
   resetAuthMock()
   resetRepositoriesMock()
+  resetPullRequestsMock()
 })
 afterEach(() => {
   cleanup()
