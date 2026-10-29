@@ -2,6 +2,7 @@ package com.devpulse.backend.service.impl;
 
 import com.devpulse.backend.client.GitHubApiClient;
 import com.devpulse.backend.dto.github.GitHubPullRequestResponse;
+import com.devpulse.backend.dto.github.PullRequestSyncResponse;
 import com.devpulse.backend.entity.GitHubAccount;
 import com.devpulse.backend.entity.GitHubRepository;
 import com.devpulse.backend.entity.PullRequest;
@@ -23,6 +24,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -103,6 +105,25 @@ class PullRequestSyncServiceImplTest {
         verify(redisService).delete("lock:github:pr-sync:" + REPOSITORY_ID);
     }
 
+    @Test
+    void theSyncTimeIsKeptToMicrosecondsLikePostgres() {
+        // Linux clocks have nanoseconds; TIMESTAMPTZ keeps microseconds.
+        Instant withNanos = Instant.parse("2026-10-29T10:00:00.123456789Z");
+        service = new PullRequestSyncServiceImpl(repositoryRepository, pullRequestRepository, installationTokens,
+                apiClient, redisService, transactionManager, Clock.fixed(withNanos, ZoneOffset.UTC));
+        GitHubRepository repository = givenRepository(INSTALLATION_ID);
+        when(redisService.setIfAbsent(anyString(), anyString(), any())).thenReturn(true);
+        when(installationTokens.getToken(INSTALLATION_ID)).thenReturn("ghs_token");
+        when(apiClient.listPullRequests(eq("ghs_token"), anyLong(), anyInt(), anyInt())).thenReturn(List.of());
+        when(repositoryRepository.findById(REPOSITORY_ID)).thenReturn(Optional.of(repository));
+
+        PullRequestSyncResponse result = service.sync(USER_ID, REPOSITORY_ID);
+
+        Instant expected = Instant.parse("2026-10-29T10:00:00.123456Z");
+        assertThat(result.syncedAt()).isEqualTo(expected);
+        assertThat(repository.getPullRequestsSyncedAt()).isEqualTo(expected);
+    }
+
     // ---------- mapping GitHub's fields ----------
 
     @Test
@@ -134,7 +155,7 @@ class PullRequestSyncServiceImplTest {
 
     // ---------- helpers ----------
 
-    private void givenRepository(Long installationId) {
+    private GitHubRepository givenRepository(Long installationId) {
         GitHubAccount account = new GitHubAccount();
         account.setInstallationId(installationId);
         GitHubRepository repository = new GitHubRepository();
@@ -142,6 +163,7 @@ class PullRequestSyncServiceImplTest {
         repository.setGithubAccount(account);
         when(repositoryRepository.findByIdAndGithubAccountUserId(REPOSITORY_ID, USER_ID))
                 .thenReturn(Optional.of(repository));
+        return repository;
     }
 
     private static GitHubPullRequestResponse github(String state, Instant mergedAt) {

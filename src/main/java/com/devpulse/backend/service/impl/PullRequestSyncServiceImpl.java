@@ -23,6 +23,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -91,8 +92,10 @@ public class PullRequestSyncServiceImpl implements PullRequestSyncService {
 
         try {
             // Taken before fetching: anything updated while we fetch is
-            // picked up by the next sync, never skipped.
-            Instant startedAt = clock.instant();
+            // picked up by the next sync, never skipped. Microseconds, because
+            // that's what Postgres stores (Linux clocks give nanoseconds), so
+            // the time we return equals the time we saved.
+            Instant startedAt = clock.instant().truncatedTo(ChronoUnit.MICROS);
             Instant cutoff = target.lastSyncedAt() == null ? null : target.lastSyncedAt().minus(CUTOFF_OVERLAP);
 
             // Network first, outside any transaction...

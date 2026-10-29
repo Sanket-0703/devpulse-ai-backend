@@ -154,7 +154,7 @@ The constants are the design decisions:
    Someone else's repository → `ResourceNotFoundException` (404).
 2. No installation id → `ConflictException` (409).
 3. Takes the lock `lock:github:pr-sync:{repositoryId}` with `setIfAbsent`. If it's held → 409 "already syncing".
-4. Records `startedAt` and computes the cutoff (null on the first sync).
+4. Records `startedAt`, truncated to microseconds because that is what Postgres stores, and computes the cutoff (null on the first sync).
 5. **`fetchChanged`**, outside any transaction (no database connection is held while waiting on GitHub).
 6. One short transaction:
    - re-loads the repository (it may have been deleted meanwhile → 404);
@@ -281,10 +281,11 @@ Because the `@DynamicPropertySource` is declared once on the base class, both su
 - **GitHub failures**: a 500 from GitHub → 502 "GitHub didn't respond…"; a 404 from GitHub → 502 "GitHub couldn't find this…".
 - **ownership**: another user gets 404 on the list, sync, detail and files; a missing number is 404 for the owner too.
 
-**`PullRequestSyncServiceImplTest`** (6, Mockito):
+**`PullRequestSyncServiceImplTest`** (7, Mockito):
 - someone else's repository is a 404 and touches neither Redis nor GitHub;
 - no installation → 409;
 - the lock is held → 409 with no GitHub call;
+- the sync time is truncated to microseconds, like Postgres (a fixed clock with nanoseconds);
 - a GitHub failure invalidates the token **and** releases the lock;
 - the `stateOf` mapping;
 - `copy` with a deleted author, a blank body, a 600-character title and a missing `updated_at`.
@@ -297,7 +298,7 @@ Because the `@DynamicPropertySource` is declared once on the base class, both su
 
 **Also:** `BackendApplicationIntegrationTest` now expects migrations 1–7.
 
-**Totals:** 131 backend tests, all green; instruction coverage **89.6%**.
+**Totals:** 132 backend tests, all green; instruction coverage **89.6%**.
 
 ---
 
@@ -467,6 +468,9 @@ I parse the unified diff myself: the hunk header gives the starting line numbers
 
 **How do you handle a GitHub outage?**
 Its failures become our `GitHubIntegrationException`, which the global handler maps to 502 with a readable message. A 404 gets its own explanation (the app probably lost access). The cached installation token is dropped in case it was revoked. The sync lock is released in `finally`. In the UI, only the part that needed GitHub shows an error with Retry.
+
+**Tell me about a bug CI caught that your machine didn't.**
+The sync returned its start time, and a test compared it with the value read back from the database. It passed on my Mac but failed on GitHub's Linux runner: `…25.386777552Z` vs `…25.386778Z`. Linux clocks have nanosecond precision, but Postgres `TIMESTAMPTZ` stores microseconds (and rounds). The fix is to truncate the time to microseconds *before* using it, so what the API returns is exactly what was saved. A unit test with a fixed nanosecond clock now reproduces it on any machine.
 
 **What made the integration tests fast?**
 I moved the fake GitHub (WireMock plus a generated RSA key) into a shared abstract base class with one `@DynamicPropertySource`. Spring caches application contexts by configuration, so both GitHub test classes reuse one context instead of starting two.
