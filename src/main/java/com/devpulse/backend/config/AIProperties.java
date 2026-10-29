@@ -28,13 +28,17 @@ public record AIProperties(
     }
 
     /**
-     * Per user, per UTC day; and per review.
+     * Per user, per UTC day; per review; and for the Playground.
      *
-     * @param maxReviewCostUsd a review stops sending chunks once it has cost this much
+     * @param dailyCostUsd            reviews and Playground runs together
+     * @param maxReviewCostUsd        a review (or Playground run) stops sending chunks once it has cost this much
+     * @param playgroundRunsPerMinute against bursts (scripts, a stuck button)
      */
     public record Limits(@DefaultValue("20") int dailyReviews,
                          @DefaultValue("1.00") BigDecimal dailyCostUsd,
-                         @DefaultValue("0.25") BigDecimal maxReviewCostUsd) {
+                         @DefaultValue("0.25") BigDecimal maxReviewCostUsd,
+                         @DefaultValue("30") int dailyPlaygroundRuns,
+                         @DefaultValue("5") int playgroundRunsPerMinute) {
     }
 
     /** USD per million tokens of the real model (gpt-4o-mini by default); the mock is free. */

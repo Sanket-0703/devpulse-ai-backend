@@ -4,6 +4,7 @@ import com.devpulse.backend.config.AIProperties;
 import com.devpulse.backend.entity.PullRequest;
 import com.devpulse.backend.exception.ConflictException;
 import com.devpulse.backend.exception.TooManyRequestsException;
+import com.devpulse.backend.repository.PlaygroundRunRepository;
 import com.devpulse.backend.repository.PullRequestRepository;
 import com.devpulse.backend.repository.ReviewRepository;
 import com.devpulse.backend.repository.UserRepository;
@@ -38,6 +39,7 @@ class ReviewServiceImplTest {
 
     @Mock private PullRequestRepository pullRequestRepository;
     @Mock private ReviewRepository reviewRepository;
+    @Mock private PlaygroundRunRepository playgroundRunRepository;
     @Mock private UserRepository userRepository;
     @Mock private ReviewRunner runner;
     @Mock private AIProvider aiProvider;
@@ -49,10 +51,13 @@ class ReviewServiceImplTest {
     @BeforeEach
     void setUp() {
         AIProperties properties = new AIProperties("mock", "m", 0.2, new AIProperties.Review(12000, 20),
-                new AIProperties.Limits(3, new BigDecimal("1.00"), new BigDecimal("0.25")),
+                new AIProperties.Limits(3, new BigDecimal("1.00"), new BigDecimal("0.25"), 30, 5),
                 new AIProperties.Pricing(BigDecimal.ONE, BigDecimal.ONE));
+        Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
+        AIUsageServiceImpl usage = new AIUsageServiceImpl(reviewRepository, playgroundRunRepository, aiProvider,
+                properties, clock);
         service = new ReviewServiceImpl(pullRequestRepository, reviewRepository, userRepository, runner, aiProvider,
-                properties, executor, transactionManager, Clock.fixed(NOW, ZoneOffset.UTC));
+                properties, usage, executor, transactionManager);
         when(pullRequestRepository.findOwned(1L, 2L, 3)).thenReturn(Optional.of(new PullRequest()));
     }
 
@@ -71,7 +76,9 @@ class ReviewServiceImplTest {
     @Test
     void theDailyBudgetIsA429Too() {
         when(reviewRepository.countByUserIdAndCreatedAtGreaterThanEqual(1L, TODAY)).thenReturn(1L);
-        when(reviewRepository.sumCostSince(1L, TODAY)).thenReturn(new BigDecimal("1.000001"));
+        // Reviews and Playground runs share the budget: $0.60 + $0.40.
+        when(reviewRepository.sumCostSince(1L, TODAY)).thenReturn(new BigDecimal("0.60"));
+        when(playgroundRunRepository.sumCostSince(1L, TODAY)).thenReturn(new BigDecimal("0.40"));
 
         assertThatThrownBy(() -> service.start(1L, 2L, 3))
                 .isInstanceOf(TooManyRequestsException.class)
@@ -82,6 +89,7 @@ class ReviewServiceImplTest {
     void aSecondActiveReviewOfTheSamePullRequestIsAConflict() {
         when(reviewRepository.countByUserIdAndCreatedAtGreaterThanEqual(1L, TODAY)).thenReturn(0L);
         when(reviewRepository.sumCostSince(1L, TODAY)).thenReturn(BigDecimal.ZERO);
+        when(playgroundRunRepository.sumCostSince(1L, TODAY)).thenReturn(BigDecimal.ZERO);
         // What the partial unique index on reviews(pull_request_id) does to the insert:
         when(reviewRepository.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("duplicate"));
 

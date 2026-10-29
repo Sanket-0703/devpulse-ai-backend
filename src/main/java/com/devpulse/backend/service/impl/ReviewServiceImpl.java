@@ -2,7 +2,6 @@ package com.devpulse.backend.service.impl;
 
 import com.devpulse.backend.config.AIProperties;
 import com.devpulse.backend.dto.PageResponse;
-import com.devpulse.backend.dto.review.AIUsageResponse;
 import com.devpulse.backend.dto.review.ReviewDetailResponse;
 import com.devpulse.backend.dto.review.ReviewFindingResponse;
 import com.devpulse.backend.dto.review.ReviewResponse;
@@ -17,6 +16,7 @@ import com.devpulse.backend.repository.ReviewRepository;
 import com.devpulse.backend.repository.UserRepository;
 import com.devpulse.backend.review.Findings;
 import com.devpulse.backend.service.AIProvider;
+import com.devpulse.backend.service.AIUsageService;
 import com.devpulse.backend.service.ReviewService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
@@ -25,13 +25,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Clock;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
@@ -46,9 +39,9 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReviewRunner runner;
     private final AIProvider aiProvider;
     private final AIProperties properties;
+    private final AIUsageService usageService;
     private final ExecutorService backgroundExecutor;
     private final TransactionTemplate transaction;
-    private final Clock clock;
 
     public ReviewServiceImpl(
             PullRequestRepository pullRequestRepository,
@@ -57,9 +50,9 @@ public class ReviewServiceImpl implements ReviewService {
             ReviewRunner runner,
             AIProvider aiProvider,
             AIProperties properties,
+            AIUsageService usageService,
             ExecutorService backgroundExecutor,
-            PlatformTransactionManager transactionManager,
-            Clock clock) {
+            PlatformTransactionManager transactionManager) {
 
         this.pullRequestRepository = pullRequestRepository;
         this.reviewRepository = reviewRepository;
@@ -67,9 +60,9 @@ public class ReviewServiceImpl implements ReviewService {
         this.runner = runner;
         this.aiProvider = aiProvider;
         this.properties = properties;
+        this.usageService = usageService;
         this.backgroundExecutor = backgroundExecutor;
         this.transaction = new TransactionTemplate(transactionManager);
-        this.clock = clock;
     }
 
     // ---------- starting a review ----------
@@ -103,23 +96,17 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     /**
-     * At most N reviews and $X of estimated cost per user per UTC day.
-     * Checked before the review starts, so one review may overshoot the
-     * cost limit by up to its own budget (ai.limits.max-review-cost-usd).
+     * At most N reviews per user per UTC day, and the shared daily budget
+     * (reviews + Playground). Checked before the review starts, so one review
+     * may overshoot the budget by up to its own cap (ai.limits.max-review-cost-usd).
      */
     private void enforceDailyLimits(Long userId) {
-        Instant dayStart = startOfToday();
-        long retryAfter = Math.max(1, Duration.between(clock.instant(), dayStart.plus(Duration.ofDays(1))).toSeconds());
-
-        if (reviewRepository.countByUserIdAndCreatedAtGreaterThanEqual(userId, dayStart)
+        if (reviewRepository.countByUserIdAndCreatedAtGreaterThanEqual(userId, usageService.startOfToday())
                 >= properties.limits().dailyReviews()) {
             throw new TooManyRequestsException("You've used today's " + properties.limits().dailyReviews()
-                    + " AI reviews. The limit resets at midnight UTC.", retryAfter);
+                    + " AI reviews. The limit resets at midnight UTC.", usageService.secondsUntilTomorrow());
         }
-        if (reviewRepository.sumCostSince(userId, dayStart).compareTo(properties.limits().dailyCostUsd()) >= 0) {
-            throw new TooManyRequestsException("You've reached today's AI budget of $"
-                    + properties.limits().dailyCostUsd() + ". The limit resets at midnight UTC.", retryAfter);
-        }
+        usageService.enforceDailyBudget(userId);
     }
 
     // ---------- reading ----------
@@ -162,22 +149,6 @@ public class ReviewServiceImpl implements ReviewService {
         });
     }
 
-    @Override
-    public AIUsageResponse usage(Long userId) {
-        Instant dayStart = startOfToday();
-        Instant monthStart = LocalDate.now(clock).withDayOfMonth(1).atStartOfDay(ZoneOffset.UTC).toInstant();
-        return transaction.execute(tx -> new AIUsageResponse(
-                aiProvider.name(),
-                aiProvider.model(),
-                reviewRepository.countByUserIdAndCreatedAtGreaterThanEqual(userId, dayStart),
-                properties.limits().dailyReviews(),
-                money(reviewRepository.sumCostSince(userId, dayStart)),
-                properties.limits().dailyCostUsd(),
-                reviewRepository.countByUserIdAndCreatedAtGreaterThanEqual(userId, monthStart),
-                reviewRepository.sumTokensSince(userId, monthStart),
-                money(reviewRepository.sumCostSince(userId, monthStart))));
-    }
-
     // ---------- helpers ----------
 
     private Review findOwned(Long userId, Long reviewId) {
@@ -188,13 +159,5 @@ public class ReviewServiceImpl implements ReviewService {
     private static ReviewDetailResponse detail(Review review) {
         return new ReviewDetailResponse(ReviewResponse.from(review),
                 review.getFindings().stream().sorted(Findings.ORDER).map(ReviewFindingResponse::from).toList());
-    }
-
-    private Instant startOfToday() {
-        return LocalDate.now(clock).atStartOfDay(ZoneOffset.UTC).toInstant();
-    }
-
-    private static BigDecimal money(BigDecimal value) {
-        return value.setScale(6, RoundingMode.HALF_UP);
     }
 }

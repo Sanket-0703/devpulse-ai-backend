@@ -1,6 +1,7 @@
 package com.devpulse.backend.repository;
 
 import com.devpulse.backend.entity.PullRequest;
+import com.devpulse.backend.entity.PullRequestState;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -17,6 +18,8 @@ public interface PullRequestRepository
     List<PullRequest> findByGithubRepositoryIdAndNumberIn(Long githubRepositoryId, Collection<Integer> numbers);
 
     long countByGithubRepositoryId(Long githubRepositoryId);
+
+    long countByGithubRepositoryGithubAccountUserIdAndState(Long userId, PullRequestState state);
 
     /**
      * Pull request #number of a repository, only if that repository belongs
