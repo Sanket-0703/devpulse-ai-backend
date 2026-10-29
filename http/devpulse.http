@@ -69,6 +69,29 @@ Authorization: Bearer {{accessToken}}
 GET {{host}}/api/github/repositories/{{repositoryId}}/pull-requests/{{prNumber}}/files
 Authorization: Bearer {{accessToken}}
 
+### Try the demo — signs in to the seeded demo account (local only)
+POST {{host}}/api/auth/demo
+
+> {% client.global.set("accessToken", response.body.accessToken); %}
+
+### Run an AI review of the demo pull request #12 (202, runs in the background)
+POST {{host}}/api/github/repositories/{{demoRepositoryId}}/pull-requests/12/reviews
+Authorization: Bearer {{accessToken}}
+
+> {% client.global.set("reviewId", response.body.id); %}
+
+### The review — re-run until status is SUCCEEDED
+GET {{host}}/api/reviews/{{reviewId}}
+Authorization: Bearer {{accessToken}}
+
+### All your reviews
+GET {{host}}/api/reviews?page=0&size=20
+Authorization: Bearer {{accessToken}}
+
+### AI usage today and this month, with your limits
+GET {{host}}/api/reviews/usage
+Authorization: Bearer {{accessToken}}
+
 ### A bad token gives a JSON 401, never a 500
 GET {{host}}/api/auth/me
 Authorization: Bearer not-a-real-token

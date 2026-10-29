@@ -134,11 +134,11 @@ Decision: **GitHub App** (fine-grained permissions, per-repo install, expiring t
 
 ## Level 7 — AI code review (mock AI first)
 
-- [ ] BE: review tables, diff parsing + chunking, review prompt, background review job with status, findings saved
-- [ ] BE: security rules (hard-coded secrets, SQL injection patterns, etc.) merged with AI findings; cost limits
-- [ ] BE: AI usage tracking — tokens and estimated cost per review and per user
-- [ ] BE: demo mode — a seeded demo user with a sample repo, PR and finished mock review, so the app can be shown without GitHub or OpenAI
-- [ ] FE: "Run AI review" with progress, review report (findings inline on the diff, filters, dismiss), review history
+- [x] BE: review tables, diff parsing + chunking, review prompt, background review job with status, findings saved
+- [x] BE: security rules (hard-coded secrets, SQL injection patterns, etc.) merged with AI findings; cost limits
+- [x] BE: AI usage tracking — tokens and estimated cost per review and per user
+- [x] BE: demo mode — a seeded demo user with a sample repo, PR and finished mock review, so the app can be shown without GitHub or OpenAI
+- [x] FE: "Run AI review" with progress, review report (findings inline on the diff, filters, dismiss), review history
 - [ ] Optional, with your approval: one run with a real AI provider
 
 **Check:** run a review on a PR and see findings on the right lines of the diff.
