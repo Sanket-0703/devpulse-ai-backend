@@ -9,31 +9,30 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+
 @Configuration
 public class AIProviderConfig {
 
-    private final AIProperties aiProperties;
+    /** The mock unless ai.provider=openai: nothing costs money by accident. */
+    @Bean
+    public AIProvider aiProvider(AIProperties properties, ChatClient chatClient,
+                                 @Value("classpath:prompts/code-review.st") Resource codeReviewPrompt) {
 
-    @Value("classpath:prompts/code-review.st")
-    private Resource codeReviewPrompt;
-
-    public AIProviderConfig(AIProperties aiProperties) {
-        this.aiProperties = aiProperties;
+        if ("openai".equalsIgnoreCase(properties.provider())) {
+            return new OpenAIProvider(chatClient, read(codeReviewPrompt), properties.model(),
+                    properties.temperature());
+        }
+        return new MockAIProvider();
     }
 
-    @Bean
-    public AIProvider aiProvider(
-            ChatClient chatClient
-    ) {
-
-        if ("openai".equalsIgnoreCase(aiProperties.provider())) {
-
-            return new OpenAIProvider(
-                    chatClient,
-                    codeReviewPrompt
-            );
+    private static String read(Resource resource) {
+        try {
+            return resource.getContentAsString(StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
-
-        return new MockAIProvider();
     }
 }

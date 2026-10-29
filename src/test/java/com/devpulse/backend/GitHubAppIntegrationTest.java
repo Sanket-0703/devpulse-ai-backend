@@ -1,12 +1,14 @@
 package com.devpulse.backend;
 
 import com.devpulse.backend.dto.AuthResponse;
+import com.devpulse.backend.dto.github.RepositoryResponse;
 import com.devpulse.backend.dto.github.SyncStatusResponse;
 import com.devpulse.backend.entity.SyncStatus;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -28,9 +30,12 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
@@ -152,6 +157,59 @@ abstract class GitHubAppIntegrationTest extends AbstractIntegrationTest {
                 isPrivate, fullName, language, pushedAt == null ? "null" : "\"" + pushedAt + "\"");
     }
 
+    // ---------- fake GitHub: pull requests ----------
+
+    protected record Setup(Identity identity, String token, Long repositoryId) {
+    }
+
+    /** Ada signs in with GitHub; the app is installed on one repository, already synced. */
+    protected Setup signedInWithOneRepo() throws Exception {
+        Identity identity = Identity.random();
+        stubIdentity(identity, repo(identity.repoId(1), "ada/backend", null, false, "Java", null));
+        String token = signInWithGitHub(identity);
+        awaitSync(token);
+        Long repositoryId = rest.exchange("/api/github/repositories", HttpMethod.GET, bearer(token),
+                        new ParameterizedTypeReference<Page<RepositoryResponse>>() {
+                        })
+                .getBody().content().getFirst().id();
+        return new Setup(identity, token, repositoryId);
+    }
+
+    protected static String pullsPath(Setup setup) {
+        return "/repositories/" + setup.identity().repoId(1) + "/pulls";
+    }
+
+    protected void stubPulls(Setup setup, int page, String... pulls) {
+        GITHUB.stubFor(get(urlPathEqualTo(pullsPath(setup)))
+                .withQueryParam("page", equalTo(String.valueOf(page)))
+                .withHeader("Authorization", equalTo("Bearer " + setup.identity().installationToken()))
+                .willReturn(okJson("[" + String.join(",", pulls) + "]")));
+    }
+
+    protected void stubFiles(Setup setup, int number, String files) {
+        GITHUB.stubFor(get(urlPathEqualTo(pullsPath(setup) + "/" + number + "/files"))
+                .withHeader("Authorization", equalTo("Bearer " + setup.identity().installationToken()))
+                .willReturn(okJson(files)));
+    }
+
+    protected static String pr(int number, String title, String state, String mergedAt, String updatedAt,
+                             String author, boolean draft) {
+        boolean closed = state.equals("closed");
+        return """
+                {"id":%d,"number":%d,"title":"%s","body":"Body of #%d","state":"%s","draft":%s,
+                 "html_url":"https://github.com/ada/backend/pull/%d",
+                 "created_at":"2026-01-01T00:00:00Z","updated_at":"%s","closed_at":%s,"merged_at":%s,
+                 "user":{"login":"%s","avatar_url":"https://avatars.example/%s"},
+                 "head":{"ref":"feature-%d","sha":"%s"},"base":{"ref":"main","sha":"0000"}}
+                """.formatted(1000 + number, number, title, number, state, draft, number, updatedAt,
+                closed ? "\"" + updatedAt + "\"" : "null", mergedAt == null ? "null" : "\"" + mergedAt + "\"",
+                author, author, number, sha(number));
+    }
+
+    protected static String sha(int number) {
+        return IntStream.range(0, 40).mapToObj(i -> String.valueOf(number % 10)).collect(Collectors.joining());
+    }
+
     // ---------- helpers ----------
 
     /** Runs the real "Sign in with GitHub" flow and returns an access token. */
@@ -222,5 +280,8 @@ abstract class GitHubAppIntegrationTest extends AbstractIntegrationTest {
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    protected record Page<T>(List<T> content, int page, int size, long totalElements, int totalPages) {
     }
 }

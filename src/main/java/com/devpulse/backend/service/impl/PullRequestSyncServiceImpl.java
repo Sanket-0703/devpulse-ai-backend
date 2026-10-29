@@ -69,7 +69,7 @@ public class PullRequestSyncServiceImpl implements PullRequestSyncService {
     }
 
     /** What the sync needs to know about the repository, read before any network call. */
-    private record Target(long githubId, Long installationId, Instant lastSyncedAt) {
+    private record Target(long githubId, Long installationId, Instant lastSyncedAt, boolean demo) {
     }
 
     @Override
@@ -78,11 +78,14 @@ public class PullRequestSyncServiceImpl implements PullRequestSyncService {
         Target target = transaction.execute(tx -> repositoryRepository
                 .findByIdAndGithubAccountUserId(repositoryId, userId)
                 .map(repo -> new Target(repo.getGithubId(), repo.getGithubAccount().getInstallationId(),
-                        repo.getPullRequestsSyncedAt()))
+                        repo.getPullRequestsSyncedAt(), repo.getGithubAccount().isDemo()))
                 .orElseThrow(() -> new ResourceNotFoundException("Repository not found")));
 
         if (target.installationId() == null) {
             throw new ConflictException("Install the DevPulse app on this repository first.");
+        }
+        if (target.demo()) {
+            throw new ConflictException(RepositorySyncServiceImpl.DEMO_CANNOT_SYNC);
         }
 
         String lockKey = RedisKeys.GITHUB_PR_SYNC_LOCK_PREFIX + repositoryId;
