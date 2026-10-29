@@ -6,6 +6,7 @@ import { API_BASE_URL } from '@/lib/api/config'
 import { authHandlers } from './authMock'
 import { pullRequestsHandlers } from './pullRequestsMock'
 import { repositoriesHandlers } from './repositoriesMock'
+import { reviewsHandlers } from './reviewsMock'
 
 /** Default API mocks. Override per test with `server.use(...)`. */
 export const handlers = [
@@ -13,6 +14,7 @@ export const handlers = [
   ...authHandlers,
   ...repositoriesHandlers,
   ...pullRequestsHandlers,
+  ...reviewsHandlers,
 ]
 
 export const server = setupServer(...handlers)

@@ -29,6 +29,12 @@ public interface AuthService {
      */
     AuthResult changePassword(Long userId, ChangePasswordRequest request);
 
+    /**
+     * A new session for a user who was identified some other way than a
+     * password (used by the demo sign-in).
+     */
+    AuthResult startSession(Long userId);
+
     /** Signs out every session of this user, including the current one. */
     void logoutEverywhere(Long userId);
 

@@ -20,6 +20,10 @@ import { timeAgo } from '@/lib/time'
 import type { ChangedFile, PullRequest } from '../api'
 import { AuthorAvatar, PullRequestStateBadge } from '../components'
 import { DiffView } from '../DiffView'
+import type { Finding } from '@/features/reviews/api'
+import { FindingCard } from '@/features/reviews/components'
+import { ReviewPanel } from '@/features/reviews/ReviewPanel'
+import { type ReviewState, useReviewState } from '@/features/reviews/useReviewState'
 import { usePullRequest, usePullRequestFiles } from '../hooks'
 
 /** Files with more changed lines than this start collapsed, so big PRs stay fast. */
@@ -31,6 +35,7 @@ export function PullRequestDetailPage() {
   const number = Number(params.number)
   const repository = useRepository(repositoryId)
   const detail = usePullRequest(repositoryId, number)
+  const review = useReviewState(repositoryId, number)
 
   const backLink = (
     <Link
@@ -122,7 +127,9 @@ export function PullRequestDetailPage() {
         </CardContent>
       </Card>
 
-      <FilesChanged repositoryId={repositoryId} number={number} />
+      <ReviewPanel state={review} />
+
+      <FilesChanged repositoryId={repositoryId} number={number} review={review} />
     </div>
   )
 }
@@ -133,7 +140,15 @@ function summary(pr: PullRequest): string {
   return `opened this ${timeAgo(pr.openedAt)}`
 }
 
-function FilesChanged({ repositoryId, number }: { repositoryId: number; number: number }) {
+function FilesChanged({
+  repositoryId,
+  number,
+  review,
+}: {
+  repositoryId: number
+  number: number
+  review: ReviewState
+}) {
   const files = usePullRequestFiles(repositoryId, number)
 
   return (
@@ -175,7 +190,12 @@ function FilesChanged({ repositoryId, number }: { repositoryId: number; number: 
             <p className="text-muted-foreground text-sm">This pull request changes no files.</p>
           )}
           {files.data.files.map((file) => (
-            <FileDiff key={file.filename} file={file} />
+            <FileDiff
+              key={file.filename}
+              file={file}
+              findings={review.findings.filter((f) => f.filePath === file.filename)}
+              review={review}
+            />
           ))}
         </>
       )}
@@ -195,11 +215,43 @@ function ChangeSummary({ files }: { files: ChangedFile[] }) {
   )
 }
 
-/** One file: a header that folds the diff open and closed (a native <details>). */
-function FileDiff({ file }: { file: ChangedFile }) {
+/**
+ * One file: a header that folds the diff open and closed (a native
+ * <details>), review findings for the whole file on top, and findings for a
+ * line right under that line.
+ */
+function FileDiff({
+  file,
+  findings,
+  review,
+}: {
+  file: ChangedFile
+  findings: Finding[]
+  review: ReviewState
+}) {
+  const card = (finding: Finding) => (
+    <FindingCard
+      key={finding.id}
+      finding={finding}
+      onToggleDismissed={review.toggleDismissed}
+      pending={review.dismissing}
+    />
+  )
+  const wholeFile = findings.filter((f) => f.line == null)
+  const byLine = new Map<number, React.ReactNode>()
+  for (const finding of findings) {
+    if (finding.line == null) continue
+    const sameLine = findings.filter((f) => f.line === finding.line)
+    byLine.set(finding.line, <div className="space-y-2">{sameLine.map(card)}</div>)
+  }
+
   return (
     <Card className="gap-0 overflow-hidden py-0">
-      <details open={file.additions + file.deletions <= COLLAPSE_ABOVE} className="group">
+      <details
+        // Big files start folded, unless the review found something in them.
+        open={file.additions + file.deletions <= COLLAPSE_ABOVE || findings.length > 0}
+        className="group"
+      >
         <summary className="hover:bg-muted/50 flex cursor-pointer list-none items-center gap-2 px-4 py-2.5 text-sm [&::-webkit-details-marker]:hidden">
           <ChevronRightIcon
             className="text-muted-foreground size-4 shrink-0 transition-transform group-open:rotate-90"
@@ -214,14 +266,22 @@ function FileDiff({ file }: { file: ChangedFile }) {
             )}
             {file.filename}
           </span>
+          {findings.length > 0 && (
+            <Badge variant="secondary" className="shrink-0">
+              {findings.length} {findings.length === 1 ? 'finding' : 'findings'}
+            </Badge>
+          )}
           <span className="shrink-0 font-mono text-xs">
             <span className="text-emerald-700 dark:text-emerald-300">+{file.additions}</span>{' '}
             <span className="text-rose-700 dark:text-rose-300">−{file.deletions}</span>
           </span>
         </summary>
         <div className="border-t">
+          {wholeFile.length > 0 && (
+            <div className="bg-muted/40 space-y-2 border-b px-3 py-2">{wholeFile.map(card)}</div>
+          )}
           {file.patch ? (
-            <DiffView patch={file.patch} filename={file.filename} />
+            <DiffView patch={file.patch} filename={file.filename} annotations={byLine} />
           ) : (
             <p className="text-muted-foreground px-4 py-3 text-sm">
               {file.status === 'renamed' && file.additions + file.deletions === 0

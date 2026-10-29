@@ -15,6 +15,7 @@ import { errorMessage } from '@/lib/api/errors'
 import { GitHubSignInButton } from '@/features/github/GitHubSignInButton'
 
 import { useAuth } from '../authContext'
+import { DemoSignIn } from '../DemoSignIn'
 import { type LoginValues, loginSchema } from '../schemas'
 
 export function LoginPage() {
@@ -81,6 +82,7 @@ export function LoginPage() {
               Create an account
             </Link>
           </p>
+          <DemoSignIn />
         </form>
       </CardContent>
     </Card>

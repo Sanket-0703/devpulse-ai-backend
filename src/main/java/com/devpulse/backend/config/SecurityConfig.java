@@ -56,7 +56,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST,
                                 "/api/auth/register", "/api/auth/login",
-                                "/api/auth/refresh", "/api/auth/logout").permitAll()
+                                "/api/auth/refresh", "/api/auth/logout", "/api/auth/demo").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/auth/demo").permitAll()
                         // Visited by the browser itself during GitHub sign-in (no token).
                         .requestMatchers(HttpMethod.GET, "/api/auth/github", "/api/github/oauth/callback").permitAll()
                         .requestMatchers("/actuator/health").permitAll()

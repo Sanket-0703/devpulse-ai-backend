@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 public class RepositorySyncServiceImpl implements RepositorySyncService {
 
     static final Duration MANUAL_SYNC_COOLDOWN = Duration.ofMinutes(1);
+    static final String DEMO_CANNOT_SYNC = "The demo account isn't connected to GitHub, so it can't sync.";
     /** Safety net: if a sync dies without releasing its lock, it frees itself. */
     static final Duration SYNC_LOCK_TTL = Duration.ofMinutes(10);
     static final int PAGE_SIZE = 100;
@@ -84,6 +85,9 @@ public class RepositorySyncServiceImpl implements RepositorySyncService {
         }
         if (account.getInstallationId() == null) {
             throw new ConflictException("Install the DevPulse app on at least one repository first.");
+        }
+        if (account.isDemo()) {
+            throw new ConflictException(DEMO_CANNOT_SYNC);
         }
 
         String cooldownKey = RedisKeys.GITHUB_SYNC_COOLDOWN_PREFIX + account.getId();

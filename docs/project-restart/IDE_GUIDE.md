@@ -426,6 +426,51 @@ Open a pull request with the **Network** tab open, filtered to `files`:
 
 In the **Elements** tab, each file is a `<details>` element: toggling it adds or removes the `open` attribute, with no JavaScript involved.
 
+## Level 7 — Background jobs, AI calls and the demo
+
+Level 7 runs work on background threads, talks to an AI provider, and adds a demo account. These are the tools for each.
+
+### IntelliJ: debugging a review step by step
+
+1. Put a breakpoint in `ReviewRunner.review(...)` on the `for (ReviewPlan.Chunk chunk : plan.chunks())` line. Right-click it and set **Suspend: Thread**, so the web server keeps answering while one thread is paused.
+2. Start a review (the **Review again** button, or the HTTP request below).
+3. In *Threads & Variables*, expand `plan`: look at `chunks[0].text` (exactly what the model receives), `files` and `filesSkipped`.
+4. **Evaluate Expression** (`⌥F8`) lets you run code against the paused state, for example `SecurityRules.scan(plan.files())` or `chunk.text().length() / 4` (the rough token count).
+5. Step over (`F8`) through `Findings.fromAI` to see a finding being validated.
+
+### IntelliJ: run one parameterized case
+
+`SecurityRulesTest.eachRuleCatchesItsPattern` runs once per row of its CSV table. In the test results, each row is its own entry: right-click one → *Run* to repeat just that case while you change a regex. **Find in Path** (`⇧⌘F`) with *Regex* ticked lets you try a rule's pattern against the whole project.
+
+### IntelliJ HTTP Client: reviews
+
+The new requests in `http/devpulse.http`:
+- **Try the demo** stores an access token for the demo account;
+- **Run an AI review** stores the review id;
+- **The review** is the one to re-run until `status` is `SUCCEEDED`;
+- **AI usage**.
+
+`demoRepositoryId` in `http-client.env.json` is the demo repository's id (see the Repositories page or the database).
+
+### IntelliJ Database: what a review stored
+
+```sql
+SELECT r.id, r.status, r.chunks, r.prompt_tokens, r.completion_tokens, r.estimated_cost_usd,
+       f.source, f.severity, f.title, f.file_path, f.line, f.dismissed
+FROM reviews r JOIN review_findings f ON f.review_id = r.id
+ORDER BY r.id DESC, f.severity;
+```
+
+To see the partial unique index at work, try inserting a second `QUEUED` row for a pull request that already has one: Postgres refuses it with `uk_reviews_one_active_per_pull_request`.
+
+### Browser DevTools: watch the polling
+
+**Network** tab, filter `reviews`: after **Run AI review**, a `POST …/reviews` (202), then `GET /api/reviews/{id}` every 1.5 seconds until the status is `SUCCEEDED`, then nothing. That stop is the `refetchInterval` returning `false`. TanStack Query Devtools (the flower button) shows the same queries with their state.
+
+### VS Code: find where a component is used
+
+`DiffView` now takes `annotations`. Put the cursor on `DiffView` and press `⇧F12` (*Find All References*) to see every place that renders it. `F12` (*Go to Definition*) on `useReviewState` jumps to the hook both the panel and the diff read from.
+
 ## Reviewing and committing changes (IntelliJ)
 
 Use IntelliJ for Git: it opens the whole repo (backend, frontend, docs) and has the best diff viewer.

@@ -7,6 +7,8 @@ export type AuthState =
 
 export type AuthContextValue = AuthState & {
   login: (body: LoginBody) => Promise<User>
+  /** Signs in to the demo account (only when the backend has demo mode on). */
+  loginDemo: () => Promise<User>
   /** Creates the account, then signs in with the same credentials. */
   register: (body: RegisterBody) => Promise<User>
   logout: () => Promise<void>

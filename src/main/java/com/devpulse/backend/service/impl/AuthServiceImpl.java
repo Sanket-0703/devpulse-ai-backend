@@ -196,6 +196,13 @@ public class AuthServiceImpl implements AuthService {
         refreshTokenService.revokeAll(user.getId());
     }
 
+    @Override
+    @Transactional
+    public AuthResult startSession(Long userId) {
+        User user = findUser(userId);
+        return issueTokens(user, refreshTokenService.issue(user));
+    }
+
     private User findUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));

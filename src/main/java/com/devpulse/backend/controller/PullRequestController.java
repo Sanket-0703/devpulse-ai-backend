@@ -5,19 +5,25 @@ import com.devpulse.backend.dto.github.PullRequestDetailResponse;
 import com.devpulse.backend.dto.github.PullRequestFilesResponse;
 import com.devpulse.backend.dto.github.PullRequestResponse;
 import com.devpulse.backend.dto.github.PullRequestSyncResponse;
+import com.devpulse.backend.dto.review.ReviewResponse;
 import com.devpulse.backend.entity.PullRequestState;
 import com.devpulse.backend.security.CustomUserPrincipal;
 import com.devpulse.backend.service.PullRequestService;
 import com.devpulse.backend.service.PullRequestSyncService;
+import com.devpulse.backend.service.ReviewService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * Pull requests of one of the signed-in user's repositories, addressed like
@@ -30,10 +36,13 @@ public class PullRequestController {
 
     private final PullRequestService pullRequestService;
     private final PullRequestSyncService syncService;
+    private final ReviewService reviewService;
 
-    public PullRequestController(PullRequestService pullRequestService, PullRequestSyncService syncService) {
+    public PullRequestController(PullRequestService pullRequestService, PullRequestSyncService syncService,
+                                 ReviewService reviewService) {
         this.pullRequestService = pullRequestService;
         this.syncService = syncService;
+        this.reviewService = reviewService;
     }
 
     @GetMapping
@@ -78,5 +87,28 @@ public class PullRequestController {
             @PathVariable int number) {
 
         return pullRequestService.files(principal.getId(), repositoryId, number);
+    }
+
+    @PostMapping("/{number}/reviews")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    @Operation(summary = "Run an AI review of the pull request's current commit",
+            description = "Starts a background review (202). Poll GET /api/reviews/{id} for the result. "
+                    + "409 if one is already running for this pull request; 429 when the daily limit is reached.")
+    public ReviewResponse startReview(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @PathVariable Long repositoryId,
+            @PathVariable int number) {
+
+        return reviewService.start(principal.getId(), repositoryId, number);
+    }
+
+    @GetMapping("/{number}/reviews")
+    @Operation(summary = "The pull request's reviews, newest first (last 20)")
+    public List<ReviewResponse> reviews(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @PathVariable Long repositoryId,
+            @PathVariable int number) {
+
+        return reviewService.history(principal.getId(), repositoryId, number);
     }
 }

@@ -16,7 +16,6 @@ public class AIServiceImpl implements AIService {
 
     @Override
     public AIReviewResponse review(String code) {
-
-        return aiProvider.generate(code);
+        return new AIReviewResponse(aiProvider.review(code).findings());
     }
 }

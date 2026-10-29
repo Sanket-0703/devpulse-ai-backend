@@ -1,12 +1,14 @@
 package com.devpulse.backend.controller;
 
 import com.devpulse.backend.dto.AuthResponse;
+import com.devpulse.backend.dto.DemoStatusResponse;
 import com.devpulse.backend.dto.LoginRequest;
 import com.devpulse.backend.dto.RegisterRequest;
 import com.devpulse.backend.dto.UserResponse;
 import com.devpulse.backend.security.CustomUserPrincipal;
 import com.devpulse.backend.security.RefreshTokenCookies;
 import com.devpulse.backend.service.AuthService;
+import com.devpulse.backend.service.DemoService;
 import com.devpulse.backend.service.AuthService.AuthResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
@@ -33,10 +35,12 @@ public class AuthController {
 
     private final AuthService authService;
     private final RefreshTokenCookies refreshTokenCookies;
+    private final DemoService demoService;
 
-    public AuthController(AuthService authService, RefreshTokenCookies refreshTokenCookies) {
+    public AuthController(AuthService authService, RefreshTokenCookies refreshTokenCookies, DemoService demoService) {
         this.authService = authService;
         this.refreshTokenCookies = refreshTokenCookies;
+        this.demoService = demoService;
     }
 
     @PostMapping("/register")
@@ -53,6 +57,21 @@ public class AuthController {
             description = "Returns a short-lived access token and sets the refresh-token cookie.")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return withRefreshCookie(authService.login(request));
+    }
+
+    @GetMapping("/demo")
+    @SecurityRequirements
+    @Operation(summary = "Is the demo account available?")
+    public DemoStatusResponse demoStatus() {
+        return new DemoStatusResponse(demoService.enabled());
+    }
+
+    @PostMapping("/demo")
+    @SecurityRequirements
+    @Operation(summary = "Sign in to the demo account",
+            description = "Like /login, without a password. 404 when demo mode is off.")
+    public ResponseEntity<AuthResponse> demo() {
+        return withRefreshCookie(authService.startSession(demoService.demoUserId()));
     }
 
     @PostMapping("/refresh")

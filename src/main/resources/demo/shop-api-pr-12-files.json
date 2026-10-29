@@ -1,0 +1,60 @@
+{
+  "headSha": "0123456789abcdef0123456789abcdef01234567",
+  "files": [
+    {
+      "filename": "src/main/java/com/shop/checkout/CheckoutController.java",
+      "previousFilename": null,
+      "status": "added",
+      "additions": 32,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,32 @@\n+package com.shop.checkout;\n+\n+import org.springframework.web.bind.annotation.PostMapping;\n+import org.springframework.web.bind.annotation.RequestBody;\n+import org.springframework.web.bind.annotation.RequestMapping;\n+import org.springframework.web.bind.annotation.RestController;\n+\n+@RestController\n+@RequestMapping(\"/api/checkout\")\n+public class CheckoutController {\n+\n+    private static final String PAYMENT_API_KEY = \"demo1234\";\n+\n+    private final OrderRepository orders;\n+    private final PaymentClient payments;\n+\n+    public CheckoutController(OrderRepository orders, PaymentClient payments) {\n+        this.orders = orders;\n+        this.payments = payments;\n+    }\n+\n+    @PostMapping\n+    public Order checkout(@RequestBody CheckoutRequest request) {\n+        System.out.println(\"Checkout for \" + request.email());\n+        // TODO: validate the cart before charging\n+        payments.charge(PAYMENT_API_KEY, request.total());\n+        try {\n+            Thread.sleep(500); // give the payment provider time to settle\n+        } catch (InterruptedException e) {}\n+        return orders.create(request);\n+    }\n+}",
+      "blobUrl": null
+    },
+    {
+      "filename": "src/main/java/com/shop/checkout/OrderRepository.java",
+      "previousFilename": null,
+      "status": "modified",
+      "additions": 5,
+      "deletions": 1,
+      "patch": "@@ -21,8 +21,12 @@ public class OrderRepository {\n     public Order create(CheckoutRequest request) {\n         return jdbc.queryForObject(INSERT, mapper, request.email(), request.total());\n     }\n \n     public List<Order> findByEmail(String email) {\n-        return jdbc.query(\"SELECT * FROM orders WHERE email = ?\", mapper, email);\n+        return jdbc.query(\"SELECT * FROM orders WHERE email = '\" + email + \"'\", mapper);\n+    }\n+\n+    public int countAll() {\n+        return jdbc.queryForObject(\"SELECT count(*) FROM orders\", Integer.class);\n     }\n }",
+      "blobUrl": null
+    },
+    {
+      "filename": "src/main/java/com/shop/security/Passwords.java",
+      "previousFilename": null,
+      "status": "modified",
+      "additions": 2,
+      "deletions": 1,
+      "patch": "@@ -8,6 +8,7 @@ public final class Passwords {\n \n     public static String fingerprint(String value) throws NoSuchAlgorithmException {\n-        MessageDigest digest = MessageDigest.getInstance(\"SHA-256\");\n+        // MD5 is faster\n+        MessageDigest digest = MessageDigest.getInstance(\"MD5\");\n         return HexFormat.of().formatHex(digest.digest(value.getBytes(UTF_8)));\n     }\n }",
+      "blobUrl": null
+    },
+    {
+      "filename": "web/src/OrderSummary.tsx",
+      "previousFilename": null,
+      "status": "added",
+      "additions": 13,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,13 @@\n+type Props = { note: string; total: number }\n+\n+/** The order summary shown after checkout. */\n+export function OrderSummary({ note, total }: Props) {\n+  console.log('rendering order summary', total)\n+  return (\n+    <section>\n+      <h2>Thank you!</h2>\n+      <p>Total: {total.toFixed(2)}</p>\n+      <div dangerouslySetInnerHTML={{ __html: note }} />\n+    </section>\n+  )\n+}",
+      "blobUrl": null
+    },
+    {
+      "filename": "web/package-lock.json",
+      "previousFilename": null,
+      "status": "modified",
+      "additions": 1,
+      "deletions": 1,
+      "patch": "@@ -1,5 +1,5 @@\n {\n   \"name\": \"shop-web\",\n-  \"version\": \"1.3.0\",\n+  \"version\": \"1.4.0\",\n   \"lockfileVersion\": 3,\n   \"requires\": true,",
+      "blobUrl": null
+    },
+    {
+      "filename": "docs/checkout-flow.png",
+      "previousFilename": null,
+      "status": "added",
+      "additions": 0,
+      "deletions": 0,
+      "patch": null,
+      "blobUrl": null
+    }
+  ],
+  "truncated": false
+}

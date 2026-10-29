@@ -2,6 +2,7 @@ package com.devpulse.backend;
 
 import com.devpulse.backend.config.AIProperties;
 import com.devpulse.backend.config.CorsProperties;
+import com.devpulse.backend.config.DemoProperties;
 import com.devpulse.backend.config.FrontendProperties;
 import com.devpulse.backend.config.GitHubProperties;
 import com.devpulse.backend.config.JwtProperties;
@@ -19,7 +20,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 		S3Properties.class,
 		AIProperties.class,
 		CorsProperties.class,
-		RefreshCookieProperties.class
+		RefreshCookieProperties.class,
+		DemoProperties.class
 })
 public class BackendApplication {
 

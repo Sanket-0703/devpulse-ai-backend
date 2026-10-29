@@ -87,6 +87,11 @@ public class GitHubAccount extends BaseEntity {
     )
     private List<GitHubRepository> repositories = new ArrayList<>();
 
+    /** The seeded demo account (DemoServiceImpl): negative ids never come from GitHub. */
+    public boolean isDemo() {
+        return githubId != null && githubId < 0;
+    }
+
     public void addRepository(GitHubRepository repository) {
         repositories.add(repository);
         repository.setGithubAccount(this);

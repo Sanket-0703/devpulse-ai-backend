@@ -8,6 +8,7 @@ import { RegisterPage } from '@/features/auth/pages/RegisterPage'
 import { GuestOnly, RequireAuth } from '@/features/auth/routeGuards'
 import { GitHubCallbackPage } from '@/features/github/GitHubCallbackPage'
 import { PullRequestDetailPage } from '@/features/pull-requests/pages/PullRequestDetailPage'
+import { ReviewsPage } from '@/features/reviews/pages/ReviewsPage'
 import { RepositoriesPage } from '@/features/repositories/pages/RepositoriesPage'
 import { RepositoryDetailPage } from '@/features/repositories/pages/RepositoryDetailPage'
 import { GitHubSettingsPage } from '@/features/settings/pages/GitHubSettingsPage'
@@ -19,7 +20,7 @@ import { NotFoundPage } from '@/pages/NotFoundPage'
 import { RouteErrorPage } from '@/pages/RouteErrorPage'
 
 // Pages already built; every other nav item still shows a ComingSoonPage.
-const BUILT_PAGES = new Set(['/settings', '/repositories'])
+const BUILT_PAGES = new Set(['/settings', '/repositories', '/reviews'])
 
 export const routes: RouteObject[] = [
   {
@@ -57,6 +58,7 @@ export const routes: RouteObject[] = [
               { path: '/repositories', element: <RepositoriesPage /> },
               { path: '/repositories/:id', element: <RepositoryDetailPage /> },
               { path: '/repositories/:id/pulls/:number', element: <PullRequestDetailPage /> },
+              { path: '/reviews', element: <ReviewsPage /> },
               {
                 path: '/settings',
                 element: <SettingsLayout />,

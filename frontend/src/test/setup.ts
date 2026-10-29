@@ -8,6 +8,7 @@ import { setAccessToken } from '@/features/auth/session'
 import { resetAuthMock } from './authMock'
 import { resetPullRequestsMock } from './pullRequestsMock'
 import { resetRepositoriesMock } from './repositoriesMock'
+import { resetReviewsMock } from './reviewsMock'
 import { server } from './server'
 
 // MSW intercepts fetch() so tests never hit the real backend.
@@ -18,6 +19,7 @@ beforeEach(() => {
   resetAuthMock()
   resetRepositoriesMock()
   resetPullRequestsMock()
+  resetReviewsMock()
 })
 afterEach(() => {
   cleanup()

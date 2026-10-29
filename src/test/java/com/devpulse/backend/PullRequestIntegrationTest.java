@@ -15,14 +15,12 @@ import org.springframework.http.ResponseEntity;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -202,57 +200,6 @@ class PullRequestIntegrationTest extends GitHubAppIntegrationTest {
 
     // ---------- fake GitHub ----------
 
-    record Setup(Identity identity, String token, Long repositoryId) {
-    }
-
-    /** Ada signs in with GitHub; the app is installed on one repository, already synced. */
-    private Setup signedInWithOneRepo() throws Exception {
-        Identity identity = Identity.random();
-        stubIdentity(identity, repo(identity.repoId(1), "ada/backend", null, false, "Java", null));
-        String token = signInWithGitHub(identity);
-        awaitSync(token);
-        Long repositoryId = rest.exchange("/api/github/repositories", HttpMethod.GET, bearer(token),
-                        new ParameterizedTypeReference<Page<RepositoryResponse>>() {
-                        })
-                .getBody().content().getFirst().id();
-        return new Setup(identity, token, repositoryId);
-    }
-
-    private static String pullsPath(Setup setup) {
-        return "/repositories/" + setup.identity().repoId(1) + "/pulls";
-    }
-
-    private void stubPulls(Setup setup, int page, String... pulls) {
-        GITHUB.stubFor(get(urlPathEqualTo(pullsPath(setup)))
-                .withQueryParam("page", equalTo(String.valueOf(page)))
-                .withHeader("Authorization", equalTo("Bearer " + setup.identity().installationToken()))
-                .willReturn(okJson("[" + String.join(",", pulls) + "]")));
-    }
-
-    private void stubFiles(Setup setup, int number, String files) {
-        GITHUB.stubFor(get(urlPathEqualTo(pullsPath(setup) + "/" + number + "/files"))
-                .withHeader("Authorization", equalTo("Bearer " + setup.identity().installationToken()))
-                .willReturn(okJson(files)));
-    }
-
-    private static String pr(int number, String title, String state, String mergedAt, String updatedAt,
-                             String author, boolean draft) {
-        boolean closed = state.equals("closed");
-        return """
-                {"id":%d,"number":%d,"title":"%s","body":"Body of #%d","state":"%s","draft":%s,
-                 "html_url":"https://github.com/ada/backend/pull/%d",
-                 "created_at":"2026-01-01T00:00:00Z","updated_at":"%s","closed_at":%s,"merged_at":%s,
-                 "user":{"login":"%s","avatar_url":"https://avatars.example/%s"},
-                 "head":{"ref":"feature-%d","sha":"%s"},"base":{"ref":"main","sha":"0000"}}
-                """.formatted(1000 + number, number, title, number, state, draft, number, updatedAt,
-                closed ? "\"" + updatedAt + "\"" : "null", mergedAt == null ? "null" : "\"" + mergedAt + "\"",
-                author, author, number, sha(number));
-    }
-
-    private static String sha(int number) {
-        return IntStream.range(0, 40).mapToObj(i -> String.valueOf(number % 10)).collect(Collectors.joining());
-    }
-
     // ---------- helpers ----------
 
     private static String base(Setup setup) {
@@ -285,8 +232,5 @@ class PullRequestIntegrationTest extends GitHubAppIntegrationTest {
     private RepositoryResponse repository(Setup setup) {
         return rest.exchange("/api/github/repositories/" + setup.repositoryId(), HttpMethod.GET,
                 bearer(setup.token()), RepositoryResponse.class).getBody();
-    }
-
-    record Page<T>(List<T> content, int page, int size, long totalElements, int totalPages) {
     }
 }

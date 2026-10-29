@@ -1,0 +1,118 @@
+import { ShieldCheckIcon } from 'lucide-react'
+import { useState } from 'react'
+import { Link } from 'react-router'
+
+import { EmptyState } from '@/components/common/EmptyState'
+import { PageHeader } from '@/components/common/PageHeader'
+import { Pagination } from '@/components/common/Pagination'
+import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { timeAgo } from '@/lib/time'
+import { cn } from '@/lib/utils'
+
+import { type AIUsage, formatCost } from '../api'
+import { FindingCountBadges, ReviewStatusBadge } from '../components'
+import { useReviews, useUsage } from '../hooks'
+
+/** Every review you ran, newest first, with today's usage against your limits. */
+export function ReviewsPage() {
+  const [page, setPage] = useState(0)
+  const reviews = useReviews(page)
+  const usage = useUsage()
+
+  return (
+    <>
+      <PageHeader
+        title="Reviews"
+        description="Every AI review you ran, with what it found and what it cost."
+      />
+
+      {usage.data && <UsageCards usage={usage.data} />}
+
+      {reviews.isPending ? (
+        <Skeleton className="h-40 w-full" />
+      ) : reviews.isError ? (
+        <EmptyState
+          icon={ShieldCheckIcon}
+          title="Couldn't load reviews"
+          description="Something went wrong. Try again in a moment."
+        />
+      ) : reviews.data.totalElements === 0 ? (
+        <EmptyState
+          icon={ShieldCheckIcon}
+          title="No reviews yet"
+          description="Open a pull request from one of your repositories and press Run AI review."
+        />
+      ) : (
+        <>
+          <Card className={cn('gap-0 py-0', reviews.isPlaceholderData && 'opacity-60')}>
+            <ul className="divide-y">
+              {reviews.data.content.map((review) => (
+                <li key={review.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <Link
+                      to={`/repositories/${review.repositoryId}/pulls/${review.pullRequestNumber}`}
+                      className="font-medium break-words underline-offset-4 hover:underline"
+                    >
+                      {review.pullRequestTitle}
+                    </Link>
+                    <p className="text-muted-foreground text-xs">
+                      {review.repositoryFullName} #{review.pullRequestNumber} ·{' '}
+                      {timeAgo(review.createdAt)} · {formatCost(review)}
+                    </p>
+                  </div>
+                  {review.status === 'SUCCEEDED' ? (
+                    <FindingCountBadges counts={review.openFindings} />
+                  ) : (
+                    <ReviewStatusBadge review={review} />
+                  )}
+                </li>
+              ))}
+            </ul>
+          </Card>
+          <Pagination
+            page={reviews.data.page}
+            totalPages={reviews.data.totalPages}
+            totalElements={reviews.data.totalElements}
+            noun="reviews"
+            onPage={setPage}
+          />
+        </>
+      )}
+    </>
+  )
+}
+
+function UsageCards({ usage }: { usage: AIUsage }) {
+  const usd = (value: number) => `$${value.toFixed(value < 1 ? 4 : 2)}`
+  const items = [
+    {
+      label: 'Reviews today',
+      value: `${usage.reviewsToday} of ${usage.dailyReviewLimit}`,
+    },
+    {
+      label: 'Cost today',
+      value: `${usd(usage.costTodayUsd)} of ${usd(usage.dailyCostLimitUsd)}`,
+    },
+    {
+      label: 'This month',
+      value: `${usage.reviewsThisMonth} reviews · ${usage.tokensThisMonth.toLocaleString()} tokens`,
+    },
+    {
+      label: 'Model',
+      value: usage.provider === 'mock' ? 'Mock AI (free)' : `${usage.provider} · ${usage.model}`,
+    },
+  ]
+  return (
+    <section aria-label="AI usage" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {items.map((item) => (
+        <Card key={item.label} className="py-4">
+          <CardContent className="space-y-1 px-4">
+            <p className="text-muted-foreground text-xs">{item.label}</p>
+            <p className="text-sm font-semibold">{item.value}</p>
+          </CardContent>
+        </Card>
+      ))}
+    </section>
+  )
+}

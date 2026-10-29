@@ -14,6 +14,18 @@ export async function login(body: LoginBody): Promise<AuthResponse> {
   return data
 }
 
+/** Whether "Try the demo" is available (demo mode on the backend). */
+export async function demoEnabled(): Promise<boolean> {
+  return unwrap(await api.GET('/api/auth/demo')).enabled
+}
+
+/** Signs in to the seeded demo account, like login without a password. */
+export async function demoLogin(): Promise<AuthResponse> {
+  const data = unwrap(await api.POST('/api/auth/demo'))
+  setAccessToken(data.accessToken)
+  return data
+}
+
 export async function register(body: RegisterBody): Promise<User> {
   return unwrap(await api.POST('/api/auth/register', { body }))
 }
