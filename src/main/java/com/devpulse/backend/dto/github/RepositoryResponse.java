@@ -23,7 +23,8 @@ public record RepositoryResponse(
         @Schema(description = "Last push to GitHub") Instant pushedAt,
         @Schema(requiredMode = REQUIRED) Instant syncedAt,
         @Schema(requiredMode = REQUIRED, description = "Whether DevPulse reviews this repository's pull requests")
-        boolean reviewEnabled
+        boolean reviewEnabled,
+        @Schema(description = "When its pull requests were last synced; null = never") Instant pullRequestsSyncedAt
 ) {
 
     public static RepositoryResponse from(GitHubRepository repository) {
@@ -41,6 +42,7 @@ public record RepositoryResponse(
                 repository.getLanguage(),
                 repository.getPushedAt(),
                 repository.getSyncedAt(),
-                repository.isReviewEnabled());
+                repository.isReviewEnabled(),
+                repository.getPullRequestsSyncedAt());
     }
 }

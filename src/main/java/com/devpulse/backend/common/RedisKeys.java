@@ -23,6 +23,14 @@ public final class RedisKeys {
     public static final String GITHUB_SYNC_COOLDOWN_PREFIX =
             "cooldown:github:sync:";
 
-    public static final String GITHUB_PULL_REQUESTS_PREFIX =
-            "cache:github:pull-requests:";
+    /** Held while one repository's pull requests sync. */
+    public static final String GITHUB_PR_SYNC_LOCK_PREFIX =
+            "lock:github:pr-sync:";
+
+    /**
+     * A pull request's changed files, per commit:
+     * {prefix}{github repository id}:{number}:{head sha}.
+     */
+    public static final String GITHUB_PR_FILES_PREFIX =
+            "cache:github:pr-files:";
 }

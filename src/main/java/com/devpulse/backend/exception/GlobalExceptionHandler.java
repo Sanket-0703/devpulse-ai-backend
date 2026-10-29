@@ -181,6 +181,21 @@ public class GlobalExceptionHandler {
 
     // ---------- 5xx ----------
 
+    // GitHub failed a call we made on the user's behalf (not the user's fault).
+    @ExceptionHandler(GitHubIntegrationException.class)
+    public ResponseEntity<ErrorResponse> handleGitHub(
+            GitHubIntegrationException ex, HttpServletRequest request) {
+
+        log.warn("GitHub call failed on {} ({}): {}", request.getRequestURI(), ex.getReason(), ex.getMessage());
+        String message = switch (ex.getReason()) {
+            case "github_not_found" -> "GitHub couldn't find this. The DevPulse app may no longer have access to "
+                    + "the repository; sync your repositories and try again.";
+            case "github_app_not_configured" -> "The GitHub App isn't fully configured on the server.";
+            default -> "GitHub didn't respond as expected. Please try again in a moment.";
+        };
+        return build(HttpStatus.BAD_GATEWAY, message, request);
+    }
+
     @ExceptionHandler(AIServiceException.class)
     public ResponseEntity<ErrorResponse> handleAIService(
             AIServiceException ex, HttpServletRequest request) {

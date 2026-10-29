@@ -6,14 +6,15 @@ import com.devpulse.backend.dto.github.GitHubEmailResponse;
 import com.devpulse.backend.dto.github.GitHubInstallationRepositoriesResponse;
 import com.devpulse.backend.dto.github.GitHubInstallationTokenResponse;
 import com.devpulse.backend.dto.github.GitHubInstallationsResponse;
+import com.devpulse.backend.dto.github.GitHubPullRequestFileResponse;
 import com.devpulse.backend.dto.github.GitHubPullRequestResponse;
-import com.devpulse.backend.dto.github.GitHubRepositoryResponse;
 import com.devpulse.backend.dto.github.GitHubUserResponse;
 import com.devpulse.backend.entity.GitHubAccount;
 import com.devpulse.backend.exception.GitHubIntegrationException;
 import com.devpulse.backend.service.GitHubTokenService;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
@@ -101,40 +102,46 @@ public class GitHubApiClientImpl implements GitHubApiClient {
     }
 
     @Override
-    public List<GitHubRepositoryResponse> getRepositories(GitHubAccount account, int page, int perPage) {
-        String accessToken = githubTokenService.getValidAccessToken(account);
-        GitHubRepositoryResponse[] repositories = call(() -> restClient.get()
-                .uri(uri -> uri.path("/user/repos")
-                        .queryParam("page", page)
-                        .queryParam("per_page", perPage)
-                        .build())
-                .headers(h -> h.setBearerAuth(accessToken))
-                .retrieve()
-                .body(GitHubRepositoryResponse[].class));
-        return repositories == null ? List.of() : Arrays.asList(repositories);
-    }
+    public List<GitHubPullRequestResponse> listPullRequests(
+            String installationToken, long githubRepositoryId, int page, int perPage) {
 
-    @Override
-    public List<GitHubPullRequestResponse> getPullRequests(
-            GitHubAccount account, Long githubRepositoryId, int page, int perPage) {
-
-        String accessToken = githubTokenService.getValidAccessToken(account);
+        // By repository id rather than owner/name: ids survive renames and transfers.
         GitHubPullRequestResponse[] pullRequests = call(() -> restClient.get()
-                .uri(uri -> uri.path("/repositories/{repositoryId}/pulls")
+                .uri(uri -> uri.path("/repositories/{id}/pulls")
                         .queryParam("state", "all")
+                        .queryParam("sort", "updated")
+                        .queryParam("direction", "desc")
                         .queryParam("page", page)
                         .queryParam("per_page", perPage)
                         .build(githubRepositoryId))
-                .headers(h -> h.setBearerAuth(accessToken))
+                .headers(h -> h.setBearerAuth(installationToken))
                 .retrieve()
                 .body(GitHubPullRequestResponse[].class));
         return pullRequests == null ? List.of() : Arrays.asList(pullRequests);
+    }
+
+    @Override
+    public List<GitHubPullRequestFileResponse> listPullRequestFiles(
+            String installationToken, long githubRepositoryId, int number, int page, int perPage) {
+
+        GitHubPullRequestFileResponse[] files = call(() -> restClient.get()
+                .uri(uri -> uri.path("/repositories/{id}/pulls/{number}/files")
+                        .queryParam("page", page)
+                        .queryParam("per_page", perPage)
+                        .build(githubRepositoryId, number))
+                .headers(h -> h.setBearerAuth(installationToken))
+                .retrieve()
+                .body(GitHubPullRequestFileResponse[].class));
+        return files == null ? List.of() : Arrays.asList(files);
     }
 
     // One place to turn GitHub/network failures into our own exception.
     private static <T> T call(Supplier<T> request) {
         try {
             return request.get();
+        } catch (HttpClientErrorException.NotFound e) {
+            // Also what GitHub answers when the token can't see the resource.
+            throw new GitHubIntegrationException("github_not_found", "GitHub returned 404", e);
         } catch (RestClientException e) {
             throw new GitHubIntegrationException("github_error", "GitHub API request failed", e);
         }
