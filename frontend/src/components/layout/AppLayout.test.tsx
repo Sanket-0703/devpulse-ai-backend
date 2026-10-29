@@ -17,11 +17,11 @@ describe('App shell', () => {
     const { user } = renderApp('/dashboard')
     const nav = await screen.findByRole('navigation', { name: 'Main' })
 
-    await user.click(within(nav).getByRole('link', { name: 'Reviews' }))
+    await user.click(within(nav).getByRole('link', { name: 'Code search' }))
 
-    expect(await screen.findByRole('heading', { name: 'Reviews' })).toBeInTheDocument()
-    expect(screen.getByText('This page arrives in Level 7 of the build plan.')).toBeInTheDocument()
-    expect(within(nav).getByRole('link', { name: 'Reviews' })).toHaveAttribute(
+    expect(await screen.findByRole('heading', { name: 'Code search' })).toBeInTheDocument()
+    expect(screen.getByText('This page arrives in Level 10 of the build plan.')).toBeInTheDocument()
+    expect(within(nav).getByRole('link', { name: 'Code search' })).toHaveAttribute(
       'aria-current',
       'page',
     )

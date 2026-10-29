@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { Fragment, type ReactNode, useMemo } from 'react'
 
 import { cn } from '@/lib/utils'
 
@@ -23,8 +23,18 @@ const MARKER: Record<DiffLine['kind'], string> = {
 /**
  * One file's unified diff as a table: old line number, new line number,
  * code. Long lines scroll sideways instead of wrapping, like on GitHub.
+ * {@code annotations} (e.g. review findings) appear right under the line
+ * with that number in the new file.
  */
-export function DiffView({ patch, filename }: { patch: string; filename: string }) {
+export function DiffView({
+  patch,
+  filename,
+  annotations,
+}: {
+  patch: string
+  filename: string
+  annotations?: Map<number, ReactNode>
+}) {
   const lines = useMemo(() => parsePatch(patch), [patch])
 
   return (
@@ -39,38 +49,53 @@ export function DiffView({ patch, filename }: { patch: string; filename: string 
           </tr>
         </thead>
         <tbody>
-          {lines.map((line, i) => (
-            <tr key={i} className={ROW[line.kind]} data-kind={line.kind}>
-              {line.kind === 'hunk' || line.kind === 'note' ? (
-                <td colSpan={3} className="px-3 py-0.5 whitespace-pre">
-                  {line.content}
-                </td>
-              ) : (
-                <>
-                  <LineNumber value={line.kind === 'add' ? undefined : line.oldLine} />
-                  <LineNumber value={line.kind === 'del' ? undefined : line.newLine} />
-                  <td className="w-full pr-3 whitespace-pre">
-                    <span
-                      className={cn(
-                        'inline-block w-5 text-center select-none',
-                        line.kind === 'add' && 'text-emerald-700 dark:text-emerald-300',
-                        line.kind === 'del' && 'text-rose-700 dark:text-rose-300',
-                      )}
-                      aria-hidden
-                    >
-                      {MARKER[line.kind]}
-                    </span>
-                    {line.kind !== 'context' && (
-                      <span className="sr-only">
-                        {line.kind === 'add' ? 'Added: ' : 'Removed: '}
-                      </span>
-                    )}
-                    {line.content}
-                  </td>
-                </>
-              )}
-            </tr>
-          ))}
+          {lines.map((line, i) => {
+            const annotation =
+              line.kind === 'add' || line.kind === 'context'
+                ? annotations?.get(line.newLine)
+                : undefined
+            return (
+              <Fragment key={i}>
+                <tr className={ROW[line.kind]} data-kind={line.kind}>
+                  {line.kind === 'hunk' || line.kind === 'note' ? (
+                    <td colSpan={3} className="px-3 py-0.5 whitespace-pre">
+                      {line.content}
+                    </td>
+                  ) : (
+                    <>
+                      <LineNumber value={line.kind === 'add' ? undefined : line.oldLine} />
+                      <LineNumber value={line.kind === 'del' ? undefined : line.newLine} />
+                      <td className="w-full pr-3 whitespace-pre">
+                        <span
+                          className={cn(
+                            'inline-block w-5 text-center select-none',
+                            line.kind === 'add' && 'text-emerald-700 dark:text-emerald-300',
+                            line.kind === 'del' && 'text-rose-700 dark:text-rose-300',
+                          )}
+                          aria-hidden
+                        >
+                          {MARKER[line.kind]}
+                        </span>
+                        {line.kind !== 'context' && (
+                          <span className="sr-only">
+                            {line.kind === 'add' ? 'Added: ' : 'Removed: '}
+                          </span>
+                        )}
+                        {line.content}
+                      </td>
+                    </>
+                  )}
+                </tr>
+                {annotation && (
+                  <tr data-kind="annotation">
+                    <td colSpan={3} className="bg-muted/40 px-3 py-2">
+                      {annotation}
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            )
+          })}
         </tbody>
       </table>
     </div>

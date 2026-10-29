@@ -77,6 +77,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/github/repositories/{repositoryId}/pull-requests/{number}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The pull request's reviews, newest first (last 20) */
+        get: operations["reviews"];
+        put?: never;
+        /**
+         * Run an AI review of the pull request's current commit
+         * @description Starts a background review (202). Poll GET /api/reviews/{id} for the result. 409 if one is already running for this pull request; 429 when the daily limit is reached.
+         */
+        post: operations["startReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/github/repositories/{repositoryId}/pull-requests/sync": {
         parameters: {
             query?: never;
@@ -258,6 +279,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/demo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Is the demo account available? */
+        get: operations["demoStatus"];
+        put?: never;
+        /**
+         * Sign in to the demo account
+         * @description Like /login, without a password. 404 when demo mode is off.
+         */
+        post: operations["demo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/ai/review": {
         parameters: {
             query?: never;
@@ -272,6 +314,23 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/reviews/{id}/findings/{findingId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Dismiss a finding (or bring it back) */
+        patch: operations["dismiss"];
         trace?: never;
     };
     "/api/github/repositories/{id}": {
@@ -343,6 +402,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your reviews, newest first */
+        get: operations["list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reviews/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One review with its findings
+         * @description 404 if it isn't yours.
+         */
+        get: operations["get_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reviews/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your AI usage today and this month, and your limits */
+        get: operations["usage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/github/repositories": {
         parameters: {
             query?: never;
@@ -351,7 +464,7 @@ export interface paths {
             cookie?: never;
         };
         /** Your repositories, one page at a time */
-        get: operations["list"];
+        get: operations["list_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -368,7 +481,7 @@ export interface paths {
             cookie?: never;
         };
         /** A repository's pull requests, most recent activity first */
-        get: operations["list_1"];
+        get: operations["list_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -385,7 +498,7 @@ export interface paths {
             cookie?: never;
         };
         /** One pull request, with its description */
-        get: operations["get_1"];
+        get: operations["get_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -567,6 +680,62 @@ export interface components {
             expiresIn: number;
             user: components["schemas"]["UserResponse"];
         };
+        FindingCounts: {
+            /** Format: int32 */
+            critical: number;
+            /** Format: int32 */
+            high: number;
+            /** Format: int32 */
+            medium: number;
+            /** Format: int32 */
+            low: number;
+        };
+        ReviewResponse: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            repositoryId: number;
+            repositoryFullName: string;
+            /** Format: int32 */
+            pullRequestNumber: number;
+            pullRequestTitle: string;
+            /** @description The commit that was reviewed */
+            headSha: string;
+            /** @enum {string} */
+            status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED";
+            /** @example mock */
+            provider: string;
+            model: string;
+            /** Format: int32 */
+            filesReviewed: number;
+            /**
+             * Format: int32
+             * @description Removed, binary or generated files
+             */
+            filesSkipped: number;
+            /**
+             * Format: int32
+             * @description AI requests made
+             */
+            chunks: number;
+            /** @description A limit stopped the review before the end of the diff */
+            truncated: boolean;
+            /** Format: int32 */
+            promptTokens: number;
+            /** Format: int32 */
+            completionTokens: number;
+            /** @description Estimated cost in USD (0 for the mock provider) */
+            estimatedCostUsd: number;
+            openFindings: components["schemas"]["FindingCounts"];
+            /** @description Why the review failed */
+            error?: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            finishedAt?: string;
+        };
         PullRequestSyncResponse: {
             /**
              * Format: int32
@@ -616,9 +785,44 @@ export interface components {
             title?: string;
             description?: string;
             recommendation?: string;
+            file?: string;
+            /** Format: int32 */
+            line?: number;
         };
         AIReviewResponse: {
             findings?: components["schemas"]["AIReviewFinding"][];
+        };
+        DismissFindingRequest: {
+            dismissed: boolean;
+        };
+        ReviewDetailResponse: {
+            review: components["schemas"]["ReviewResponse"];
+            findings: components["schemas"]["ReviewFindingResponse"][];
+        };
+        ReviewFindingResponse: {
+            /** Format: int64 */
+            id: number;
+            /**
+             * @description AI model or DevPulse security rule
+             * @enum {string}
+             */
+            source: "AI" | "RULE";
+            /** @description The security rule that matched (RULE findings) */
+            ruleId?: string;
+            /** @enum {string} */
+            severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+            /** @enum {string} */
+            category: "SECURITY" | "BUG" | "PERFORMANCE" | "MAINTAINABILITY" | "CODE_QUALITY";
+            title: string;
+            description: string;
+            recommendation?: string;
+            filePath: string;
+            /**
+             * Format: int32
+             * @description Line in the new version of the file; null for the whole file
+             */
+            line?: number;
+            dismissed: boolean;
         };
         ReviewSettingRequest: {
             reviewEnabled: boolean;
@@ -652,6 +856,33 @@ export interface components {
              * @description When its pull requests were last synced; null = never
              */
             pullRequestsSyncedAt?: string;
+        };
+        PageResponseReviewResponse: {
+            content: components["schemas"]["ReviewResponse"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            size: number;
+            /** Format: int64 */
+            totalElements: number;
+            /** Format: int32 */
+            totalPages: number;
+        };
+        AIUsageResponse: {
+            /** @example mock */
+            provider: string;
+            model: string;
+            /** Format: int64 */
+            reviewsToday: number;
+            /** Format: int32 */
+            dailyReviewLimit: number;
+            costTodayUsd: number;
+            dailyCostLimitUsd: number;
+            /** Format: int64 */
+            reviewsThisMonth: number;
+            /** Format: int64 */
+            tokensThisMonth: number;
+            costThisMonthUsd: number;
         };
         PageResponseRepositoryResponse: {
             content: components["schemas"]["RepositoryResponse"][];
@@ -745,6 +976,10 @@ export interface components {
             installed: boolean;
             /** @description GitHub page for choosing which repositories DevPulse can see; null if not installed */
             manageRepositoriesUrl?: string;
+        };
+        DemoStatusResponse: {
+            /** @description Whether "Try the demo" is available */
+            enabled: boolean;
         };
         ErrorResponse: {
             /** Format: date-time */
@@ -880,6 +1115,52 @@ export interface operations {
                 };
                 content: {
                     "*/*": string;
+                };
+            };
+        };
+    };
+    reviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                repositoryId: number;
+                number: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReviewResponse"][];
+                };
+            };
+        };
+    };
+    startReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                repositoryId: number;
+                number: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReviewResponse"];
                 };
             };
         };
@@ -1090,6 +1371,46 @@ export interface operations {
             };
         };
     };
+    demoStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DemoStatusResponse"];
+                };
+            };
+        };
+    };
+    demo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AuthResponse"];
+                };
+            };
+        };
+    };
     review: {
         parameters: {
             query?: never;
@@ -1110,6 +1431,33 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AIReviewResponse"];
+                };
+            };
+        };
+    };
+    dismiss: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                findingId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DismissFindingRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReviewDetailResponse"];
                 };
             };
         };
@@ -1231,6 +1579,71 @@ export interface operations {
     list: {
         parameters: {
             query?: {
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseReviewResponse"];
+                };
+            };
+        };
+    };
+    get_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReviewDetailResponse"];
+                };
+            };
+        };
+    };
+    usage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AIUsageResponse"];
+                };
+            };
+        };
+    };
+    list_1: {
+        parameters: {
+            query?: {
                 q?: string;
                 reviewEnabled?: boolean;
                 page?: number;
@@ -1254,7 +1667,7 @@ export interface operations {
             };
         };
     };
-    list_1: {
+    list_2: {
         parameters: {
             query?: {
                 state?: "OPEN" | "CLOSED" | "MERGED";
@@ -1281,7 +1694,7 @@ export interface operations {
             };
         };
     };
-    get_1: {
+    get_2: {
         parameters: {
             query?: never;
             header?: never;

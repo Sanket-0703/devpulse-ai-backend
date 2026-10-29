@@ -50,6 +50,8 @@ const state = {
   accessTokens: new Map<string, number>(),
   tokenCounter: 0,
   refreshCalls: 0,
+  /** Whether the backend offers "Try the demo" (signs in as DEMO_USER). */
+  demoMode: false,
 }
 
 export function resetAuthMock({
@@ -77,6 +79,12 @@ export function resetAuthMock({
   state.accessTokens.clear()
   state.tokenCounter = 0
   state.refreshCalls = 0
+  state.demoMode = false
+}
+
+/** Turns on the backend's demo mode: "Try the demo" signs in as DEMO_USER. */
+export function enableDemoMode() {
+  state.demoMode = true
 }
 
 /** Simulates the 15-minute access token running out. */
@@ -152,6 +160,14 @@ export const authHandlers = [
     if (!account || account.password === null || account.password !== password) {
       return error(401, 'Invalid email or password', '/api/auth/login')
     }
+    return signIn(account)
+  }),
+
+  http.get(`${API_BASE_URL}/api/auth/demo`, () => HttpResponse.json({ enabled: state.demoMode })),
+
+  http.post(`${API_BASE_URL}/api/auth/demo`, () => {
+    const account = state.accounts.get(DEMO_USER.id)
+    if (!state.demoMode || !account) return error(404, 'Demo mode is off', '/api/auth/demo')
     return signIn(account)
   }),
 
