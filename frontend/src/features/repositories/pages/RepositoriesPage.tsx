@@ -4,6 +4,8 @@ import { Link, useSearchParams } from 'react-router'
 
 import { EmptyState } from '@/components/common/EmptyState'
 import { PageHeader } from '@/components/common/PageHeader'
+import { Pagination } from '@/components/common/Pagination'
+import { SegmentedControl } from '@/components/common/SegmentedControl'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -204,31 +206,13 @@ function RepositoryList({
         </ul>
       </Card>
 
-      {page.totalPages > 1 && (
-        <nav aria-label="Pagination" className="mt-4 flex items-center justify-between gap-2">
-          <p className="text-muted-foreground text-sm">
-            Page {page.page + 1} of {page.totalPages} · {page.totalElements} repositories
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page.page === 0}
-              onClick={() => onPage(page.page - 1)}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page.page + 1 >= page.totalPages}
-              onClick={() => onPage(page.page + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </nav>
-      )}
+      <Pagination
+        page={page.page}
+        totalPages={page.totalPages}
+        totalElements={page.totalElements}
+        noun="repositories"
+        onPage={onPage}
+      />
     </>
   )
 }
@@ -264,41 +248,6 @@ function RepositoryRow({ repository }: { repository: Repository }) {
         <ReviewSwitch repository={repository} />
       </label>
     </li>
-  )
-}
-
-/** A row of toggle buttons; exactly one is pressed. */
-function SegmentedControl<T extends string>({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string
-  options: { value: T; label: string }[]
-  value: T
-  onChange: (value: T) => void
-}) {
-  return (
-    <div role="group" aria-label={label} className="bg-muted inline-flex rounded-md p-0.5">
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          aria-pressed={value === option.value}
-          onClick={() => onChange(option.value)}
-          className={cn(
-            'rounded-sm px-3 py-1.5 text-sm font-medium transition-colors',
-            'focus-visible:ring-ring outline-none focus-visible:ring-2',
-            value === option.value
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground',
-          )}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
   )
 }
 

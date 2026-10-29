@@ -7,6 +7,7 @@ import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { RegisterPage } from '@/features/auth/pages/RegisterPage'
 import { GuestOnly, RequireAuth } from '@/features/auth/routeGuards'
 import { GitHubCallbackPage } from '@/features/github/GitHubCallbackPage'
+import { PullRequestDetailPage } from '@/features/pull-requests/pages/PullRequestDetailPage'
 import { RepositoriesPage } from '@/features/repositories/pages/RepositoriesPage'
 import { RepositoryDetailPage } from '@/features/repositories/pages/RepositoryDetailPage'
 import { GitHubSettingsPage } from '@/features/settings/pages/GitHubSettingsPage'
@@ -55,6 +56,7 @@ export const routes: RouteObject[] = [
               })),
               { path: '/repositories', element: <RepositoriesPage /> },
               { path: '/repositories/:id', element: <RepositoryDetailPage /> },
+              { path: '/repositories/:id/pulls/:number', element: <PullRequestDetailPage /> },
               {
                 path: '/settings',
                 element: <SettingsLayout />,

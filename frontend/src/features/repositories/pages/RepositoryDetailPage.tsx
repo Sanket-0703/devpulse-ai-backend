@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, ExternalLinkIcon, FileSearchIcon, GitPullRequestIcon } from 'lucide-react'
+import { ArrowLeftIcon, ExternalLinkIcon, FileSearchIcon } from 'lucide-react'
 import { Link, useParams } from 'react-router'
 
 import { EmptyState } from '@/components/common/EmptyState'
@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { PullRequestsSection } from '@/features/pull-requests/PullRequestsSection'
 import { ApiRequestError } from '@/lib/api/errors'
 import { timeAgo } from '@/lib/time'
 
@@ -109,11 +110,7 @@ export function RepositoryDetailPage() {
         </CardContent>
       </Card>
 
-      <EmptyState
-        icon={GitPullRequestIcon}
-        title="Pull requests"
-        description="This repository's pull requests arrive in Level 6 of the build plan."
-      />
+      <PullRequestsSection repository={repo} />
     </div>
   )
 }
