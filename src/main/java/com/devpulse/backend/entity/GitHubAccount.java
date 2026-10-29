@@ -6,6 +6,8 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
@@ -61,6 +63,17 @@ public class GitHubAccount extends BaseEntity {
     private Long installationId;
 
     private Instant connectedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private SyncStatus syncStatus = SyncStatus.NEVER;
+
+    /** When the last successful sync finished. */
+    private Instant lastSyncedAt;
+
+    /** Why the last sync failed, shown to the user; null after a success. */
+    @Column(length = 500)
+    private String syncError;
 
     @OneToOne
     @JoinColumn(name = "user_id", nullable = false, unique = true)

@@ -1,6 +1,8 @@
 package com.devpulse.backend.client;
 
 import com.devpulse.backend.dto.github.GitHubEmailResponse;
+import com.devpulse.backend.dto.github.GitHubInstallationRepositoriesResponse;
+import com.devpulse.backend.dto.github.GitHubInstallationTokenResponse;
 import com.devpulse.backend.dto.github.GitHubInstallationsResponse;
 import com.devpulse.backend.dto.github.GitHubPullRequestResponse;
 import com.devpulse.backend.dto.github.GitHubRepositoryResponse;
@@ -19,6 +21,14 @@ public interface GitHubApiClient {
     List<GitHubEmailResponse> getEmails(String accessToken);
 
     GitHubInstallationsResponse getUserInstallations(String accessToken);
+
+    // ----- as the GitHub App -----
+
+    /** Exchanges an app JWT for a one-hour installation token. */
+    GitHubInstallationTokenResponse createInstallationToken(String appJwt, long installationId);
+
+    /** One page of the repositories an installation token can access. */
+    GitHubInstallationRepositoriesResponse listInstallationRepositories(String installationToken, int page, int perPage);
 
     // ----- with a stored account (token refreshed when needed) -----
 

@@ -1,9 +1,14 @@
 package com.devpulse.backend.dto.github;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Instant;
+
+/** A repository as GitHub's REST API returns it. */
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Getter
 @Setter
 public class GitHubRepositoryResponse {
@@ -31,4 +36,7 @@ public class GitHubRepositoryResponse {
     private String defaultBranch;
 
     private String language;
+
+    @JsonProperty("pushed_at")
+    private Instant pushedAt;
 }

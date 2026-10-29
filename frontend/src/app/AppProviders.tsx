@@ -1,4 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { type ReactNode, useState } from 'react'
 
 import { Toaster } from '@/components/ui/sonner'
@@ -18,6 +19,8 @@ export function AppProviders({ children }: { children: ReactNode }) {
         <TooltipProvider>
           <AuthProvider>{children}</AuthProvider>
           <Toaster richColors closeButton />
+          {/* Floating cache inspector, development builds only (stripped from production). */}
+          {import.meta.env.DEV && <ReactQueryDevtools buttonPosition="bottom-left" />}
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

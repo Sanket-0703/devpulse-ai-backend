@@ -77,6 +77,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/github/repositories/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Repository sync status */
+        get: operations["syncStatus"];
+        put?: never;
+        /**
+         * Sync repositories from GitHub now
+         * @description Starts a background sync (202). Poll GET /sync for the result. 409 if GitHub isn't connected or the app isn't installed; 429 more than once a minute.
+         */
+        post: operations["sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/github/install": {
         parameters: {
             query?: never;
@@ -233,6 +254,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/github/repositories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One of your repositories
+         * @description 404 if it doesn't exist or isn't yours.
+         */
+        get: operations["get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Turn AI review on or off for a repository */
+        patch: operations["update"];
+        trace?: never;
+    };
     "/api/vector/search": {
         parameters: {
             query?: never;
@@ -281,46 +323,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/github/repositories/{id}": {
+    "/api/github/repositories": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getRepositoryById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/github/repositories/github/{githubId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getRepositoryByGithubId"];
-        put?: never;
-        post?: never;
-        delete: operations["deleteRepository"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/github/repositories/account/{accountId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getRepositoriesByAccount"];
+        /** Your repositories, one page at a time */
+        get: operations["list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -562,6 +573,21 @@ export interface components {
             expiresIn: number;
             user: components["schemas"]["UserResponse"];
         };
+        SyncStatusResponse: {
+            connected: boolean;
+            installed: boolean;
+            /** @enum {string} */
+            status: "NEVER" | "RUNNING" | "SUCCEEDED" | "FAILED";
+            /**
+             * Format: date-time
+             * @description When the last successful sync finished
+             */
+            lastSyncedAt?: string;
+            /** @description Why the last sync failed */
+            error?: string;
+            /** Format: int64 */
+            repositoryCount: number;
+        };
         UrlResponse: {
             url: string;
         };
@@ -586,6 +612,45 @@ export interface components {
         AIReviewResponse: {
             findings?: components["schemas"]["AIReviewFinding"][];
         };
+        ReviewSettingRequest: {
+            reviewEnabled: boolean;
+        };
+        RepositoryResponse: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            githubId: number;
+            name: string;
+            /** @example Sanket-0703/devpulse-ai-backend */
+            fullName: string;
+            description?: string;
+            isPrivate: boolean;
+            fork: boolean;
+            archived: boolean;
+            htmlUrl: string;
+            defaultBranch: string;
+            language?: string;
+            /**
+             * Format: date-time
+             * @description Last push to GitHub
+             */
+            pushedAt?: string;
+            /** Format: date-time */
+            syncedAt: string;
+            /** @description Whether DevPulse reviews this repository's pull requests */
+            reviewEnabled: boolean;
+        };
+        PageResponseRepositoryResponse: {
+            content: components["schemas"]["RepositoryResponse"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            size: number;
+            /** Format: int64 */
+            totalElements: number;
+            /** Format: int32 */
+            totalPages: number;
+        };
         GitHubAccount: {
             /** Format: int64 */
             id?: number;
@@ -607,6 +672,11 @@ export interface components {
             installationId?: number;
             /** Format: date-time */
             connectedAt?: string;
+            /** @enum {string} */
+            syncStatus?: "NEVER" | "RUNNING" | "SUCCEEDED" | "FAILED";
+            /** Format: date-time */
+            lastSyncedAt?: string;
+            syncError?: string;
             user?: components["schemas"]["User"];
             repositories?: components["schemas"]["GitHubRepository"][];
         };
@@ -628,7 +698,10 @@ export interface components {
             defaultBranch?: string;
             language?: string;
             /** Format: date-time */
+            pushedAt?: string;
+            /** Format: date-time */
             syncedAt?: string;
+            reviewEnabled?: boolean;
             githubAccount?: components["schemas"]["GitHubAccount"];
             pullRequests?: components["schemas"]["PullRequest"][];
             private?: boolean;
@@ -678,21 +751,6 @@ export interface components {
             /** Format: date-time */
             tokensValidAfter?: string;
             githubAccount?: components["schemas"]["GitHubAccount"];
-        };
-        GitHubRepositoryCacheDto: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            githubId?: number;
-            name?: string;
-            fullName?: string;
-            description?: string;
-            fork?: boolean;
-            archived?: boolean;
-            htmlUrl?: string;
-            defaultBranch?: string;
-            language?: string;
-            private?: boolean;
         };
         GitHubConnectionResponse: {
             connected: boolean;
@@ -841,6 +899,46 @@ export interface operations {
                 };
                 content: {
                     "*/*": string;
+                };
+            };
+        };
+    };
+    syncStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SyncStatusResponse"];
+                };
+            };
+        };
+    };
+    sync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SyncStatusResponse"];
                 };
             };
         };
@@ -1013,6 +1111,54 @@ export interface operations {
             };
         };
     };
+    get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RepositoryResponse"];
+                };
+            };
+        };
+    };
+    update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewSettingRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RepositoryResponse"];
+                };
+            };
+        };
+    };
     searchDocument: {
         parameters: {
             query: {
@@ -1079,13 +1225,17 @@ export interface operations {
             };
         };
     };
-    getRepositoryById: {
+    list: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
+            query?: {
+                q?: string;
+                reviewEnabled?: boolean;
+                page?: number;
+                size?: number;
+                sort?: "NAME" | "PUSHED";
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -1096,71 +1246,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["GitHubRepository"];
-                };
-            };
-        };
-    };
-    getRepositoryByGithubId: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                githubId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GitHubRepository"];
-                };
-            };
-        };
-    };
-    deleteRepository: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                githubId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    getRepositoriesByAccount: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                accountId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GitHubRepositoryCacheDto"][];
+                    "*/*": components["schemas"]["PageResponseRepositoryResponse"];
                 };
             };
         };

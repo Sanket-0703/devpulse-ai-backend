@@ -6,13 +6,17 @@ import { toast } from 'sonner'
 import { setAccessToken } from '@/features/auth/session'
 
 import { resetAuthMock } from './authMock'
+import { resetRepositoriesMock } from './repositoriesMock'
 import { server } from './server'
 
 // MSW intercepts fetch() so tests never hit the real backend.
 // Unmocked requests fail the test, so a missing handler is obvious.
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }))
 // Every test starts signed in as DEMO_USER unless it calls resetAuthMock({ signedIn: false }).
-beforeEach(() => resetAuthMock())
+beforeEach(() => {
+  resetAuthMock()
+  resetRepositoriesMock()
+})
 afterEach(() => {
   cleanup()
   server.resetHandlers()

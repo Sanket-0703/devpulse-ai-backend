@@ -297,6 +297,72 @@ If your IntelliJ subscription doesn't include the Database tool or the HTTP Clie
 
 ---
 
+## Level 5 — Tests, background work and caches
+
+Level 5 adds work that happens *off* the request (a background sync on virtual threads), a cache in Redis, and a lot of tests. These are the tools for each.
+
+### IntelliJ: running tests efficiently
+
+| Action | How |
+|---|---|
+| Run one test / one class | Gutter ▶ next to the method / class, or `⌃⇧R` with the cursor inside |
+| Run everything under a folder | Right-click `src/test/java` (or a package) → *Run Tests* |
+| Re-run only the failures | In the Run window: the *Rerun Failed Tests* button |
+| Run with coverage | Gutter ▶ → *Run with Coverage*; covered lines turn green, missed ones red, and the *Coverage* tool window shows % per class |
+| Jump from a failure to its line | Click the stack-trace link in the test output |
+| Toggle between a class and its test | `⇧⌘T` (*Go to Test*) |
+
+**Debugging background work**
+- Put a breakpoint in `RepositorySyncServiceImpl.run`. Right-click the red dot and set **Suspend: Thread** (not *All*), so only the sync thread stops while the server keeps answering requests.
+- When it stops, the *Threads & Variables* view lists the thread as `virtual-…`: that's a Java 21 virtual thread from `BackgroundConfig`.
+
+### IntelliJ Services: your Docker containers
+*View → Tool Windows → Services* (`⌘8`) → **Docker** (connect if asked). You'll see `devpulse-dev-postgres-1` and `devpulse-dev-redis-1`: view their logs, restart them, or open a terminal inside (*Create Terminal*).
+
+### Redis from the terminal
+
+```bash
+redis-cli --scan --pattern 'cache:github:*'
+```
+
+```bash
+redis-cli ttl cache:github:installation-token:<installation id>
+```
+
+The installation token is stored **encrypted** (`v1:…`) and its TTL counts down from about 55 minutes; that's how often DevPulse asks GitHub for a new one. Keys starting with `lock:` and `cooldown:` exist only while a sync runs and for a minute after a manual sync.
+
+### VS Code: Vitest in watch mode
+
+```bash
+npm run test:watch
+```
+
+Tests re-run on every save. In the watch screen press `t` and type part of a test name (e.g. `optimistic`) to run only matching tests, `a` for all, and `q` to quit.
+
+```bash
+npm run test:coverage
+```
+
+This writes an HTML report to `coverage/index.html`; open it in a browser to see which lines tests never reach.
+
+### Browser: TanStack Query Devtools
+
+In development there's a small **flower icon in the bottom-left corner** of the app. Click it to open the query cache:
+- Each row is a query key, e.g. `["repositories","list",{…}]`, `["repositories","sync"]`, `["github-connection"]`.
+- Colours: **fresh** (green), **fetching** (blue), **stale** (yellow), **inactive** (grey).
+- Click a query to see its data, when it was last updated, and buttons to refetch or invalidate it.
+
+It isn't included in production builds.
+
+**Exercises**
+1. Open the Devtools on **Repositories**, then click **Sync now**. Watch `["repositories","sync"]` turn blue every 1.5 s (polling while `RUNNING`), then the `list` queries refetch when it finishes (`useSyncStatus`).
+2. Toggle **AI review** on a repository and watch the list query's data change *before* the request finishes (optimistic update, `useToggleReview`), then refetch after.
+3. In IntelliJ, run `RepositoryIntegrationTest` with coverage, then open `RepositorySyncServiceImpl`. Which lines are red? They're the paths no test reaches yet, such as the app being uninstalled while a sync is starting.
+4. Debug `RepositoryIntegrationTest.connectingGitHubSyncs…` with a *Suspend: Thread* breakpoint in `apply(...)`. Inspect `remote` (what GitHub "returned") and `existing` (what was in the database).
+5. With the backend running, click **Sync now** in the app, then within a minute run `redis-cli --scan --pattern 'cooldown:*'` and `redis-cli ttl` on the key you see.
+
+---
+
 ## Reviewing and committing changes (IntelliJ)
 
 Use IntelliJ for Git: it opens the whole repo (backend, frontend, docs) and has the best diff viewer.
