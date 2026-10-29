@@ -27,6 +27,10 @@ public final class RedisKeys {
     public static final String GITHUB_PR_SYNC_LOCK_PREFIX =
             "lock:github:pr-sync:";
 
+    /** Playground runs of a user in the current one-minute window. */
+    public static final String PLAYGROUND_RATE_PREFIX =
+            "ratelimit:playground:";
+
     /**
      * A pull request's changed files, per commit:
      * {prefix}{github repository id}:{number}:{head sha}.

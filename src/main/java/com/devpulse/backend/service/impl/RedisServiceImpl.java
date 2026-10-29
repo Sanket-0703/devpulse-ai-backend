@@ -47,6 +47,15 @@ public class RedisServiceImpl implements RedisService {
     }
 
     @Override
+    public long increment(String key, Duration ttl) {
+        Long value = redisTemplate.opsForValue().increment(key);
+        if (value != null && value == 1L) {
+            redisTemplate.expire(key, ttl); // fixed window, started by the first hit
+        }
+        return value == null ? 0 : value;
+    }
+
+    @Override
     public boolean setIfAbsent(String key, String value, Duration ttl) {
         return Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(key, value, ttl));
     }

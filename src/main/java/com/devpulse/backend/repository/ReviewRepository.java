@@ -40,6 +40,23 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     long countByUserIdAndCreatedAtGreaterThanEqual(Long userId, Instant since);
 
+    long countByUserId(Long userId);
+
+    @EntityGraph(attributePaths = {"pullRequest", "pullRequest.githubRepository"})
+    List<Review> findTop5ByUserIdOrderByCreatedAtDesc(Long userId);
+
+    /** Open findings per severity (critical, high, medium, low) of each pull request's latest successful review. */
+    @Query("""
+            select coalesce(sum(r.criticalCount), 0), coalesce(sum(r.highCount), 0),
+                   coalesce(sum(r.mediumCount), 0), coalesce(sum(r.lowCount), 0)
+            from Review r
+            where r.user.id = :userId and r.status = :succeeded
+              and r.createdAt = (select max(latest.createdAt) from Review latest
+                                 where latest.pullRequest = r.pullRequest and latest.status = :succeeded)
+            """)
+    List<Object[]> sumOpenFindingsOfLatestReviews(@Param("userId") Long userId,
+                                                  @Param("succeeded") ReviewStatus succeeded);
+
     @Query("select coalesce(sum(r.estimatedCostUsd), 0) from Review r where r.user.id = :userId and r.createdAt >= :since")
     BigDecimal sumCostSince(@Param("userId") Long userId, @Param("since") Instant since);
 
