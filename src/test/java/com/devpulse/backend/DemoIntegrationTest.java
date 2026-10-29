@@ -20,7 +20,7 @@ import org.springframework.http.ResponseEntity;
 
 import java.time.Duration;
 import java.util.List;
-import Map;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
