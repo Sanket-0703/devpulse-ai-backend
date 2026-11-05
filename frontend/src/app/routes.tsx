@@ -15,6 +15,7 @@ import { RepositoriesPage } from '@/features/repositories/pages/RepositoriesPage
 import { RepositoryDetailPage } from '@/features/repositories/pages/RepositoryDetailPage'
 import { GitHubSettingsPage } from '@/features/settings/pages/GitHubSettingsPage'
 import { ProfileSettingsPage } from '@/features/settings/pages/ProfileSettingsPage'
+import { ReviewSettingsPage } from '@/features/settings/pages/ReviewSettingsPage'
 import { SecuritySettingsPage } from '@/features/settings/pages/SecuritySettingsPage'
 import { SettingsLayout } from '@/features/settings/SettingsLayout'
 import { ComingSoonPage } from '@/pages/ComingSoonPage'
@@ -71,6 +72,7 @@ export const routes: RouteObject[] = [
                   { path: 'profile', element: <ProfileSettingsPage /> },
                   { path: 'security', element: <SecuritySettingsPage /> },
                   { path: 'github', element: <GitHubSettingsPage /> },
+                  { path: 'reviews', element: <ReviewSettingsPage /> },
                 ],
               },
               { path: '*', element: <NotFoundPage /> },

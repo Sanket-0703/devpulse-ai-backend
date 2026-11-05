@@ -68,6 +68,11 @@ export async function setFindingDismissed(
   )
 }
 
+/** Posts the findings to GitHub as a pull request review with inline comments. */
+export async function publishReview(id: number): Promise<Review> {
+  return unwrap(await api.POST('/api/reviews/{id}/publish', { params: { path: { id } } }))
+}
+
 export async function listReviews(page: number): Promise<ReviewPage> {
   return unwrap(await api.GET('/api/reviews', { params: { query: { page, size: PAGE_SIZE } } }))
 }

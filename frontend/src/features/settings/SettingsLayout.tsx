@@ -3,11 +3,11 @@ import { NavLink, Outlet } from 'react-router'
 import { PageHeader } from '@/components/common/PageHeader'
 import { cn } from '@/lib/utils'
 
-// Level 9 adds Review preferences.
 const SECTIONS = [
   { to: '/settings/profile', label: 'Profile' },
   { to: '/settings/security', label: 'Security' },
   { to: '/settings/github', label: 'GitHub' },
+  { to: '/settings/reviews', label: 'Reviews' },
 ]
 
 /** Settings page frame: title, section tabs, and the section in <Outlet />. */
@@ -16,7 +16,7 @@ export function SettingsLayout() {
     <>
       <PageHeader
         title="Settings"
-        description="Your account, password, sessions and GitHub connection."
+        description="Your account, password, sessions, GitHub connection and review preferences."
       />
 
       <nav aria-label="Settings sections" className="mb-6 flex gap-1 border-b">

@@ -20,3 +20,24 @@ export async function changePassword(body: ChangePasswordBody): Promise<User> {
   setAccessToken(session.accessToken)
   return session.user
 }
+
+// ---------- review settings and webhooks (Level 9) ----------
+
+export type ReviewSettings = components['schemas']['ReviewSettingsResponse']
+export type ReviewSettingsBody = components['schemas']['ReviewSettingsRequest']
+export type WebhookDelivery = components['schemas']['WebhookDeliveryResponse']
+
+export const reviewSettingsKey = ['settings', 'reviews'] as const
+export const webhookDeliveriesKey = ['settings', 'webhook-deliveries'] as const
+
+export async function getReviewSettings(): Promise<ReviewSettings> {
+  return unwrap(await api.GET('/api/settings/reviews'))
+}
+
+export async function saveReviewSettings(body: ReviewSettingsBody): Promise<ReviewSettings> {
+  return unwrap(await api.PUT('/api/settings/reviews', { body }))
+}
+
+export async function listWebhookDeliveries(): Promise<WebhookDelivery[]> {
+  return unwrap(await api.GET('/api/github/webhooks/deliveries'))
+}
