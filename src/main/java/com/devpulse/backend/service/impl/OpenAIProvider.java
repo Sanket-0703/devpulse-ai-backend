@@ -45,7 +45,8 @@ public class OpenAIProvider implements AIProvider {
         try {
             // responseEntity: the parsed JSON *and* the raw response, whose metadata has the token usage.
             ResponseEntity<ChatResponse, AIReviewResponse> response = chatClient.prompt()
-                    .options(ChatOptions.builder().model(model).temperature(temperature).build())
+                    // Spring AI 2 takes the builder and merges it with the client's defaults.
+                    .options(ChatOptions.builder().model(model).temperature(temperature))
                     .system(systemPrompt)
                     .user(input)
                     .call()

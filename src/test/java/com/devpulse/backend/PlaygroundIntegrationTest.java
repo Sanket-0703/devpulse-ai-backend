@@ -8,7 +8,7 @@ import com.devpulse.backend.entity.FindingSource;
 import com.devpulse.backend.repository.PlaygroundRunRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -74,9 +74,9 @@ class PlaygroundIntegrationTest extends AbstractIntegrationTest {
     void invalidInputIsRejected() {
         String token = registerAndLogin();
 
-        assertThat(review(token, "JAVA", "   ").getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(review(token, "JAVA", "x".repeat(20_001)).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(review(token, "COBOL", "x").getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(reviewExpectingError(token, "JAVA", "   ").getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(reviewExpectingError(token, "JAVA", "x".repeat(20_001)).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(reviewExpectingError(token, "COBOL", "x").getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(rest.exchange("/api/playground/review", HttpMethod.POST,
                 new HttpEntity<>(Map.of("language", "JAVA", "code", "x")), Map.class).getStatusCode())
                 .isEqualTo(HttpStatus.UNAUTHORIZED);
@@ -110,6 +110,12 @@ class PlaygroundIntegrationTest extends AbstractIntegrationTest {
         return rest.exchange("/api/playground/review", HttpMethod.POST,
                 new HttpEntity<>(Map.of("language", language, "code", code), headers(token)),
                 PlaygroundResponse.class);
+    }
+
+    /** Reads the error body as JSON (Jackson 3 won't turn an error into a half-empty PlaygroundResponse). */
+    private ResponseEntity<Map> reviewExpectingError(String token, String language, String code) {
+        return rest.exchange("/api/playground/review", HttpMethod.POST,
+                new HttpEntity<>(Map.of("language", language, "code", code), headers(token)), Map.class);
     }
 
     private String registerAndLogin() {

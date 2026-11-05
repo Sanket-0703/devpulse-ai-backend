@@ -30,7 +30,7 @@ public class RepositoryServiceImpl implements RepositoryService {
     public PageResponse<RepositoryResponse> list(Long userId, String query, Boolean reviewEnabled,
                                                  int page, int size, SortOrder sort) {
 
-        Specification<GitHubRepository> spec = Specification.where(ownedBy(userId))
+        Specification<GitHubRepository> spec = ownedBy(userId)
                 .and(matches(query))
                 .and(reviewEnabledIs(reviewEnabled));
 
@@ -78,7 +78,7 @@ public class RepositoryServiceImpl implements RepositoryService {
 
     private static Specification<GitHubRepository> matches(String query) {
         if (query == null || query.isBlank()) {
-            return null; // "no condition"
+            return Specification.unrestricted(); // no condition (Spring Data 4 rejects null)
         }
         String pattern = SqlLike.containsPattern(query);
         return (root, q, cb) -> cb.or(
@@ -87,7 +87,7 @@ public class RepositoryServiceImpl implements RepositoryService {
     }
 
     private static Specification<GitHubRepository> reviewEnabledIs(Boolean reviewEnabled) {
-        return reviewEnabled == null ? null : (root, q, cb) -> cb.equal(root.get("reviewEnabled"), reviewEnabled);
+        return reviewEnabled == null ? Specification.unrestricted() : (root, q, cb) -> cb.equal(root.get("reviewEnabled"), reviewEnabled);
     }
 
     /** Pushed repositories newest first, never-pushed ones last, then by name. */

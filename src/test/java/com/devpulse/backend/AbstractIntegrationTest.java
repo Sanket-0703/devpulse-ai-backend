@@ -1,10 +1,11 @@
 package com.devpulse.backend;
 
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 /**
@@ -15,12 +16,14 @@ import org.testcontainers.utility.DockerImageName;
  * cached Spring context never points at a stopped container.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+// Boot 4: TestRestTemplate is no longer registered by @SpringBootTest alone.
+@AutoConfigureTestRestTemplate
 @ActiveProfiles("test")
 public abstract class AbstractIntegrationTest {
 
     @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES =
-            new PostgreSQLContainer<>(
+    static final PostgreSQLContainer POSTGRES =
+            new PostgreSQLContainer(
                     DockerImageName.parse("pgvector/pgvector:pg17")
                             .asCompatibleSubstituteFor("postgres")
             );

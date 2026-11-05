@@ -1,7 +1,6 @@
 package com.devpulse.backend.security;
 
 import com.devpulse.backend.dto.ErrorResponse;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
@@ -11,6 +10,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -23,10 +23,10 @@ import java.time.Instant;
 @Component
 public class JsonSecurityErrorHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
 
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
 
-    public JsonSecurityErrorHandler(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+    public JsonSecurityErrorHandler(JsonMapper jsonMapper) {
+        this.jsonMapper = jsonMapper;
     }
 
     // No valid token on a protected endpoint.
@@ -62,6 +62,6 @@ public class JsonSecurityErrorHandler implements AuthenticationEntryPoint, Acces
 
         response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        objectMapper.writeValue(response.getOutputStream(), body);
+        jsonMapper.writeValue(response.getOutputStream(), body);
     }
 }

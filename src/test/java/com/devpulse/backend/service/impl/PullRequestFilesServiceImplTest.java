@@ -8,12 +8,12 @@ import com.devpulse.backend.entity.GitHubRepository;
 import com.devpulse.backend.entity.PullRequest;
 import com.devpulse.backend.service.GitHubInstallationTokenService;
 import com.devpulse.backend.service.RedisService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Collections;
 import java.util.List;
@@ -45,7 +45,7 @@ class PullRequestFilesServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new PullRequestFilesServiceImpl(installationTokens, apiClient, redisService, new ObjectMapper());
+        service = new PullRequestFilesServiceImpl(installationTokens, apiClient, redisService, JsonMapper.builder().build());
 
         GitHubAccount account = new GitHubAccount();
         account.setInstallationId(77L);
