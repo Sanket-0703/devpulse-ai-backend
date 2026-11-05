@@ -617,6 +617,58 @@ Try inserting a row with an existing `delivery_id`: Postgres refuses it (`uk_web
 
 `PublishControl` uses an `AlertDialog`. In Testing Library it's found with `findByRole('alertdialog', { name: 'Publish this review to GitHub?' })`: the name comes from the dialog's title. Hover a role query in VS Code (with the Testing Library ESLint/TS types) to see the accessible-name rules.
 
+## Level 10 — Vectors, embeddings and long-running jobs
+
+Level 10 stores vectors in Postgres and runs a CPU-heavy job (embedding). These are the tools to see both.
+
+### IntelliJ Database: look at vectors and run a search by hand
+
+```sql
+SELECT path, start_line, end_line, left(content, 60) AS code, vector_dims(embedding) AS dims
+FROM code_chunks ORDER BY id LIMIT 10;
+```
+
+Nearest neighbours of one chunk (no model needed: we reuse a stored vector):
+
+```sql
+SELECT c.path, c.start_line, round((1 - (c.embedding <=> ref.embedding))::numeric, 3) AS similarity
+FROM code_chunks c, (SELECT embedding FROM code_chunks WHERE path LIKE '%SessionTokens%' LIMIT 1) ref
+ORDER BY c.embedding <=> ref.embedding
+LIMIT 5;
+```
+
+Prefix a query with `EXPLAIN ANALYZE` to see whether Postgres used `idx_code_chunks_embedding` (the HNSW index) or a sequential scan; with a handful of rows a scan is cheaper, and the planner knows it.
+
+### Redis: the embedding cache
+
+```bash
+redis-cli --scan --pattern 'cache:embedding:*' | wc -l
+```
+
+```bash
+redis-cli strlen "$(redis-cli --scan --pattern 'cache:embedding:*' | head -1)"
+```
+
+The count grows by the number of *new* chunks only; re-indexing unchanged code adds nothing. Each value is 2,048 characters: 384 numbers × 4 bytes, Base64.
+
+### IntelliJ: profile the index job
+
+Indexing DevPulse's own code takes about 8 seconds, almost all of it inside the embedding model.
+- **Run → Profile 'BackendApplication' with IntelliJ Profiler**, press **Index code**, then open the flame graph: the widest bar is `TransformersEmbeddingModel.embed`.
+- The second time, the same bar almost disappears (cache hits). Profiling shows where time goes instead of guessing.
+
+### IntelliJ HTTP Client: index and search
+
+The new requests in `http/devpulse.http`:
+- **Index the demo repository's code**, then **The repository** (re-run until `indexStatus` is `SUCCEEDED`);
+- **Search code**: change `q` to anything.
+
+The response shows each hit's `score`.
+
+### VS Code: following data through the UI
+
+`CodeIndexCard` → `useIndexRepository` → `indexRepository` → `api.POST(…/index)`: use `F12` (Go to Definition) on each name to walk from the button to the request, and `⇧⌥F12` (Find All References) on `repositoryKeys.detail` to see everything that reads or writes that cache entry.
+
 ## Reviewing and committing changes (IntelliJ)
 
 Use IntelliJ for Git: it opens the whole repo (backend, frontend, docs) and has the best diff viewer.
