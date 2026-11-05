@@ -7,7 +7,9 @@ import com.devpulse.backend.dto.github.RepositoryResponse;
 import com.devpulse.backend.dto.review.ReviewDetailResponse;
 import com.devpulse.backend.dto.review.ReviewFindingResponse;
 import com.devpulse.backend.dto.review.ReviewResponse;
+import com.devpulse.backend.dto.search.CodeSearchResult;
 import com.devpulse.backend.entity.ReviewStatus;
+import com.devpulse.backend.entity.SyncStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.TestRestTemplate;
@@ -79,6 +81,27 @@ class DemoIntegrationTest extends AbstractIntegrationTest {
                 .contains("hardcoded-credential", "sql-concatenation", "weak-hash", "raw-html");
         assertThat(detail.findings()).extracting(ReviewFindingResponse::title)
                 .contains("Exception swallowed", "Debug output left in", "Blocking sleep", "Unfinished work");
+    }
+
+    @Test
+    void theDemoCodeIsIndexedSoSearchWorksWithoutGitHub() {
+        String token = rest.postForEntity("/api/auth/demo", null, AuthResponse.class).getBody().accessToken();
+        Long repositoryId = rest.exchange("/api/github/repositories", HttpMethod.GET, bearer(token),
+                        new ParameterizedTypeReference<GitHubAppIntegrationTest.Page<RepositoryResponse>>() {
+                        })
+                .getBody().content().getFirst().id();
+
+        RepositoryResponse indexed = await().atMost(Duration.ofSeconds(30)).pollInterval(Duration.ofMillis(200))
+                .until(() -> rest.exchange("/api/github/repositories/" + repositoryId, HttpMethod.GET, bearer(token),
+                        RepositoryResponse.class).getBody(), r -> r.indexStatus() == SyncStatus.SUCCEEDED);
+        assertThat(indexed.indexedFiles()).isEqualTo(9);
+
+        List<CodeSearchResult> results = rest.exchange("/api/search?q={q}", HttpMethod.GET, bearer(token),
+                new ParameterizedTypeReference<List<CodeSearchResult>>() {
+                }, "how is a session token checked").getBody();
+        assertThat(results.subList(0, 2)).extracting(CodeSearchResult::path).anyMatch(path ->
+                path.endsWith("SessionTokens.java") || path.endsWith("SessionFilter.java"));
+        assertThat(results.getFirst().url()).isNull(); // the demo's code isn't on GitHub
     }
 
     private List<ReviewResponse> reviews(String token, Long repositoryId) {

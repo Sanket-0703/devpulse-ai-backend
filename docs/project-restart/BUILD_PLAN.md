@@ -163,11 +163,11 @@ Decision: **GitHub App** (fine-grained permissions, per-repo install, expiring t
 
 ## Level 10 — Code indexing, semantic search & RAG
 
-- [ ] BE: index a repo into pgvector (local embeddings, no API cost), index status, semantic search API, related code fed into reviews
-- [ ] BE: cache embeddings in Redis (keyed by content hash) so unchanged code isn't re-embedded
-- [ ] FE: Index tab on the repo page, Search page
+- [x] BE: index a repo into pgvector (local embeddings, no API cost), index status, semantic search API, related code fed into reviews
+- [x] BE: cache embeddings in Redis (keyed by content hash) so unchanged code isn't re-embedded
+- [x] FE: Index tab on the repo page, Search page
 
-**Check:** search "where are JWT tokens validated" in DevPulse's own repo → `JwtAuthenticationFilter` / `JwtService` in the top 3.
+**Check:** search "where are JWT tokens validated" in DevPulse's own repo → `JwtAuthenticationFilter` / `JwtService` in the top 3. (Automated: `CodeIndexIntegrationTest` indexes DevPulse's own source and asserts it.)
 
 ## Level 11 — Polish & hardening (still local)
 

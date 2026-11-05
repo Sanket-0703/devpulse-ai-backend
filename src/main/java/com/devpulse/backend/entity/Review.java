@@ -63,6 +63,10 @@ public class Review extends BaseEntity {
     @Column(nullable = false)
     private int chunks;
 
+    /** Related code snippets from the repository's index sent to the model as context (Level 10). */
+    @Column(nullable = false)
+    private int contextChunks;
+
     /** True if a limit stopped the review before it covered the whole diff. */
     @Column(nullable = false)
     private boolean truncated;

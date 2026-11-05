@@ -11,6 +11,7 @@ import { resetPlaygroundMock } from './playgroundMock'
 import { resetPullRequestsMock } from './pullRequestsMock'
 import { resetRepositoriesMock } from './repositoriesMock'
 import { resetReviewsMock } from './reviewsMock'
+import { resetSearchMock } from './searchMock'
 import { server } from './server'
 
 // MSW intercepts fetch() so tests never hit the real backend.
@@ -24,6 +25,7 @@ beforeEach(() => {
   resetReviewsMock()
   resetDashboardMock()
   resetPlaygroundMock()
+  resetSearchMock()
 })
 afterEach(() => {
   cleanup()

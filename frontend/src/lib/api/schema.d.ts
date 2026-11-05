@@ -63,22 +63,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/vector/test": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["addTestDocument"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/test/s3/upload": {
         parameters: {
             query?: never;
@@ -190,6 +174,26 @@ export interface paths {
          * @description Waits for the sync to finish. Only what changed since the last sync is fetched. 409 if a sync is already running or the app isn't installed; 502 if GitHub fails.
          */
         post: operations["sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/github/repositories/{id}/index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Index the repository's code for search and reviews
+         * @description Starts in the background (202): the default branch is downloaded, split into chunks and embedded. Poll GET /{id} for indexStatus. 409 if the app isn't installed.
+         */
+        post: operations["index"];
         delete?: never;
         options?: never;
         head?: never;
@@ -416,22 +420,6 @@ export interface paths {
         patch: operations["update_1"];
         trace?: never;
     };
-    "/api/vector/search": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["searchDocument"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/test/s3/exists/{key}": {
         parameters: {
             query?: never;
@@ -456,6 +444,26 @@ export interface paths {
             cookie?: never;
         };
         get: operations["download"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Semantic code search
+         * @description Finds code by what it does, e.g. "where are JWT tokens validated". Only indexed repositories are searched.
+         */
+        get: operations["search"];
         put?: never;
         post?: never;
         delete?: never;
@@ -838,6 +846,11 @@ export interface components {
              * @description AI requests made
              */
             chunks: number;
+            /**
+             * Format: int32
+             * @description Related code snippets from the repository's index given to the model
+             */
+            contextChunks: number;
             /** @description A limit stopped the review before the end of the diff */
             truncated: boolean;
             /** Format: int32 */
@@ -918,6 +931,54 @@ export interface components {
             /** Format: date-time */
             syncedAt: string;
         };
+        RepositoryResponse: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            githubId: number;
+            name: string;
+            /** @example Sanket-0703/devpulse-ai-backend */
+            fullName: string;
+            description?: string;
+            isPrivate: boolean;
+            fork: boolean;
+            archived: boolean;
+            htmlUrl: string;
+            defaultBranch: string;
+            language?: string;
+            /**
+             * Format: date-time
+             * @description Last push to GitHub
+             */
+            pushedAt?: string;
+            /** Format: date-time */
+            syncedAt: string;
+            /** @description Whether DevPulse reviews this repository's pull requests */
+            reviewEnabled: boolean;
+            /**
+             * Format: date-time
+             * @description When its pull requests were last synced; null = never
+             */
+            pullRequestsSyncedAt?: string;
+            /**
+             * @description State of the code index used by search and reviews
+             * @enum {string}
+             */
+            indexStatus: "NEVER" | "RUNNING" | "SUCCEEDED" | "FAILED";
+            /**
+             * Format: date-time
+             * @description When the code was last indexed
+             */
+            indexedAt?: string;
+            /** @description The default branch's commit that was indexed */
+            indexedCommitSha?: string;
+            /** Format: int32 */
+            indexedFiles: number;
+            /** Format: int32 */
+            indexedChunks: number;
+            /** @description Why the last index failed */
+            indexError?: string;
+        };
         SyncStatusResponse: {
             connected: boolean;
             installed: boolean;
@@ -982,35 +1043,24 @@ export interface components {
         ReviewSettingRequest: {
             reviewEnabled: boolean;
         };
-        RepositoryResponse: {
+        CodeSearchResult: {
             /** Format: int64 */
-            id: number;
-            /** Format: int64 */
-            githubId: number;
-            name: string;
-            /** @example Sanket-0703/devpulse-ai-backend */
-            fullName: string;
-            description?: string;
-            isPrivate: boolean;
-            fork: boolean;
-            archived: boolean;
-            htmlUrl: string;
-            defaultBranch: string;
+            repositoryId: number;
+            repositoryFullName: string;
+            path: string;
+            /** Format: int32 */
+            startLine: number;
+            /** Format: int32 */
+            endLine: number;
             language?: string;
+            content: string;
             /**
-             * Format: date-time
-             * @description Last push to GitHub
+             * Format: double
+             * @description Cosine similarity: 1 = same meaning, 0 = unrelated
              */
-            pushedAt?: string;
-            /** Format: date-time */
-            syncedAt: string;
-            /** @description Whether DevPulse reviews this repository's pull requests */
-            reviewEnabled: boolean;
-            /**
-             * Format: date-time
-             * @description When its pull requests were last synced; null = never
-             */
-            pullRequestsSyncedAt?: string;
+            score: number;
+            /** @description The lines on GitHub, at the indexed commit */
+            url?: string;
         };
         PageResponseReviewResponse: {
             content: components["schemas"]["ReviewResponse"][];
@@ -1314,26 +1364,6 @@ export interface operations {
             };
         };
     };
-    addTestDocument: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": string;
-                };
-            };
-        };
-    };
     upload: {
         parameters: {
             query?: never;
@@ -1499,6 +1529,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PullRequestSyncResponse"];
+                };
+            };
+        };
+    };
+    index: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RepositoryResponse"];
                 };
             };
         };
@@ -1802,28 +1854,6 @@ export interface operations {
             };
         };
     };
-    searchDocument: {
-        parameters: {
-            query: {
-                query: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": string;
-                };
-            };
-        };
-    };
     exists: {
         parameters: {
             query?: never;
@@ -1864,6 +1894,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": string;
+                };
+            };
+        };
+    };
+    search: {
+        parameters: {
+            query: {
+                q: string;
+                repositoryId?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CodeSearchResult"][];
                 };
             };
         };

@@ -220,11 +220,6 @@
 			</exclusions>
 		</dependency>
 
-		<!-- Spring AI PGVector -->
-		<dependency>
-			<groupId>org.springframework.ai</groupId>
-			<artifactId>spring-ai-starter-vector-store-pgvector</artifactId>
-		</dependency>
 
 		<!-- Local Transformer Embeddings -->
 		<dependency>

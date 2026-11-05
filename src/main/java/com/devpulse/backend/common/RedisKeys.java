@@ -31,6 +31,17 @@ public final class RedisKeys {
     public static final String REVIEW_PUBLISH_LOCK_PREFIX =
             "lock:review:publish:";
 
+    /**
+     * An embedding, by the SHA-256 of the embedded text:
+     * {prefix}{model}:{hash}. The same text always gets the same vector.
+     */
+    public static final String EMBEDDING_PREFIX =
+            "cache:embedding:";
+
+    /** Held while a repository's code is being indexed. */
+    public static final String CODE_INDEX_LOCK_PREFIX =
+            "lock:code-index:";
+
     /** Playground runs of a user in the current one-minute window. */
     public static final String PLAYGROUND_RATE_PREFIX =
             "ratelimit:playground:";

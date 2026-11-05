@@ -2,10 +2,15 @@ package com.devpulse.backend.service.impl;
 
 import com.devpulse.backend.service.RedisService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -53,6 +58,24 @@ public class RedisServiceImpl implements RedisService {
             redisTemplate.expire(key, ttl); // fixed window, started by the first hit
         }
         return value == null ? 0 : value;
+    }
+
+    @Override
+    public List<String> getAll(List<String> keys) {
+        if (keys.isEmpty()) {
+            return List.of();
+        }
+        List<String> values = redisTemplate.opsForValue().multiGet(keys); // Redis MGET
+        return values == null ? Collections.nCopies(keys.size(), null) : values;
+    }
+
+    @Override
+    public long deleteMatching(String pattern) {
+        List<String> keys = new ArrayList<>();
+        try (Cursor<String> cursor = redisTemplate.scan(ScanOptions.scanOptions().match(pattern).count(500).build())) {
+            cursor.forEachRemaining(keys::add);
+        }
+        return keys.isEmpty() ? 0 : redisTemplate.delete(keys);
     }
 
     @Override

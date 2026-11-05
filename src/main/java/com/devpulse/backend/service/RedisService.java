@@ -1,6 +1,7 @@
 package com.devpulse.backend.service;
 
 import java.time.Duration;
+import java.util.List;
 
 public interface RedisService {
 
@@ -22,6 +23,12 @@ public interface RedisService {
      * starts the counter's time window ({@code ttl}); it then disappears.
      */
     long increment(String key, Duration ttl);
+
+    /** Several values in one round trip; null where a key doesn't exist. */
+    List<String> getAll(List<String> keys);
+
+    /** Deletes every key matching a pattern (SCAN, not KEYS: it doesn't block Redis). */
+    long deleteMatching(String pattern);
 
     boolean setIfAbsent(String key, String value, Duration ttl);
 

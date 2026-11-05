@@ -7,6 +7,7 @@ import { errorMessage } from '@/lib/api/errors'
 import {
   getRepository,
   getSyncStatus,
+  indexRepository,
   listRepositories,
   type Repository,
   type RepositoryListParams,
@@ -62,6 +63,17 @@ export function useRepository(id: number) {
     queryKey: repositoryKeys.detail(id),
     queryFn: () => getRepository(id),
     retry: false,
+    // While its code is being indexed, check every 2 seconds.
+    refetchInterval: (q) => (q.state.data?.indexStatus === 'RUNNING' ? 2000 : false),
+  })
+}
+
+export function useIndexRepository(id: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => indexRepository(id),
+    onSuccess: (repository) => queryClient.setQueryData(repositoryKeys.detail(id), repository),
+    onError: (error) => toast.error(errorMessage(error)),
   })
 }
 

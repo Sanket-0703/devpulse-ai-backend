@@ -20,7 +20,8 @@ describe('App shell', () => {
     await user.click(within(nav).getByRole('link', { name: 'Code search' }))
 
     expect(await screen.findByRole('heading', { name: 'Code search' })).toBeInTheDocument()
-    expect(screen.getByText('This page arrives in Level 10 of the build plan.')).toBeInTheDocument()
+    // Every page in the sidebar is built now: no "arrives in Level N" placeholders left.
+    expect(screen.queryByText(/This page arrives in Level/)).not.toBeInTheDocument()
     expect(within(nav).getByRole('link', { name: 'Code search' })).toHaveAttribute(
       'aria-current',
       'page',

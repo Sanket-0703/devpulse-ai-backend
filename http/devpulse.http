@@ -142,6 +142,18 @@ X-Hub-Signature-256: {{signature}}
 
 {"zen":"Design for failure.","hook_id":1}
 
+### Index the demo repository's code (202; runs in the background)
+POST {{host}}/api/github/repositories/{{demoRepositoryId}}/index
+Authorization: Bearer {{accessToken}}
+
+### The repository — re-run until indexStatus is SUCCEEDED
+GET {{host}}/api/github/repositories/{{demoRepositoryId}}
+Authorization: Bearer {{accessToken}}
+
+### Search code by meaning (all your indexed repositories)
+GET {{host}}/api/search?q=how is a session token checked&limit=5
+Authorization: Bearer {{accessToken}}
+
 ### A bad token gives a JSON 401, never a 500
 GET {{host}}/api/auth/me
 Authorization: Bearer not-a-real-token

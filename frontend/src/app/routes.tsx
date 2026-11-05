@@ -11,6 +11,7 @@ import { GitHubCallbackPage } from '@/features/github/GitHubCallbackPage'
 import { PlaygroundPage } from '@/features/playground/pages/PlaygroundPage'
 import { PullRequestDetailPage } from '@/features/pull-requests/pages/PullRequestDetailPage'
 import { ReviewsPage } from '@/features/reviews/pages/ReviewsPage'
+import { SearchPage } from '@/features/search/pages/SearchPage'
 import { RepositoriesPage } from '@/features/repositories/pages/RepositoriesPage'
 import { RepositoryDetailPage } from '@/features/repositories/pages/RepositoryDetailPage'
 import { GitHubSettingsPage } from '@/features/settings/pages/GitHubSettingsPage'
@@ -23,7 +24,14 @@ import { NotFoundPage } from '@/pages/NotFoundPage'
 import { RouteErrorPage } from '@/pages/RouteErrorPage'
 
 // Pages already built; every other nav item still shows a ComingSoonPage.
-const BUILT_PAGES = new Set(['/dashboard', '/settings', '/repositories', '/reviews', '/playground'])
+const BUILT_PAGES = new Set([
+  '/dashboard',
+  '/settings',
+  '/repositories',
+  '/reviews',
+  '/search',
+  '/playground',
+])
 
 export const routes: RouteObject[] = [
   {
@@ -63,6 +71,7 @@ export const routes: RouteObject[] = [
               { path: '/repositories/:id/pulls/:number', element: <PullRequestDetailPage /> },
               { path: '/dashboard', element: <DashboardPage /> },
               { path: '/reviews', element: <ReviewsPage /> },
+              { path: '/search', element: <SearchPage /> },
               { path: '/playground', element: <PlaygroundPage /> },
               {
                 path: '/settings',

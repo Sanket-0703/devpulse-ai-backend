@@ -40,6 +40,12 @@ public interface GitHubApiClient {
     List<GitHubPullRequestFileResponse> listPullRequestFiles(
             String installationToken, long githubRepositoryId, int number, int page, int perPage);
 
+    /** The commit a branch points at now. */
+    String getBranchHeadSha(String installationToken, long githubRepositoryId, String branch);
+
+    /** The repository's files at a commit, as one zip archive (GitHub's "zipball"). */
+    byte[] downloadZipball(String installationToken, long githubRepositoryId, String ref);
+
     /** Posts a pull request review with inline comments (needs "Pull requests: write"). */
     GitHubReviewResponse createPullRequestReview(
             String installationToken, long githubRepositoryId, int number, GitHubCreateReviewRequest request);

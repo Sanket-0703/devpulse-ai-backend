@@ -5,6 +5,7 @@ import com.devpulse.backend.dto.github.RepositoryResponse;
 import com.devpulse.backend.dto.github.ReviewSettingRequest;
 import com.devpulse.backend.dto.github.SyncStatusResponse;
 import com.devpulse.backend.security.CustomUserPrincipal;
+import com.devpulse.backend.service.CodeIndexService;
 import com.devpulse.backend.service.RepositoryService;
 import com.devpulse.backend.service.RepositoryService.SortOrder;
 import com.devpulse.backend.service.RepositorySyncService;
@@ -31,10 +32,13 @@ public class GitHubRepositoryController {
 
     private final RepositoryService repositoryService;
     private final RepositorySyncService syncService;
+    private final CodeIndexService codeIndexService;
 
-    public GitHubRepositoryController(RepositoryService repositoryService, RepositorySyncService syncService) {
+    public GitHubRepositoryController(RepositoryService repositoryService, RepositorySyncService syncService,
+                                      CodeIndexService codeIndexService) {
         this.repositoryService = repositoryService;
         this.syncService = syncService;
+        this.codeIndexService = codeIndexService;
     }
 
     @GetMapping
@@ -64,6 +68,15 @@ public class GitHubRepositoryController {
             @Valid @RequestBody ReviewSettingRequest request) {
 
         return repositoryService.setReviewEnabled(principal.getId(), id, request.reviewEnabled());
+    }
+
+    @PostMapping("/{id}/index")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    @Operation(summary = "Index the repository's code for search and reviews",
+            description = "Starts in the background (202): the default branch is downloaded, split into chunks and "
+                    + "embedded. Poll GET /{id} for indexStatus. 409 if the app isn't installed.")
+    public RepositoryResponse index(@AuthenticationPrincipal CustomUserPrincipal principal, @PathVariable Long id) {
+        return codeIndexService.requestIndex(principal.getId(), id);
     }
 
     @GetMapping("/sync")
