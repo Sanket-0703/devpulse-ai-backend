@@ -27,6 +27,10 @@ public final class RedisKeys {
     public static final String GITHUB_PR_SYNC_LOCK_PREFIX =
             "lock:github:pr-sync:";
 
+    /** Held while a review is being posted to GitHub (no double publishing). */
+    public static final String REVIEW_PUBLISH_LOCK_PREFIX =
+            "lock:review:publish:";
+
     /** Playground runs of a user in the current one-minute window. */
     public static final String PLAYGROUND_RATE_PREFIX =
             "ratelimit:playground:";

@@ -5,10 +5,13 @@ import com.devpulse.backend.dto.github.PullRequestFilesResponse;
 import com.devpulse.backend.entity.PullRequest;
 import com.devpulse.backend.entity.Review;
 import com.devpulse.backend.entity.ReviewStatus;
+import com.devpulse.backend.entity.ReviewTrigger;
 import com.devpulse.backend.exception.AIServiceException;
 import com.devpulse.backend.exception.GitHubIntegrationException;
 import com.devpulse.backend.repository.ReviewRepository;
 import com.devpulse.backend.service.PullRequestFilesService;
+import com.devpulse.backend.service.ReviewPublishingService;
+import com.devpulse.backend.service.ReviewSettingsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -34,15 +37,20 @@ public class ReviewRunner {
     private final PullRequestFilesService filesService;
     private final ReviewEngine engine;
     private final AIProperties properties;
+    private final ReviewSettingsService settingsService;
+    private final ReviewPublishingService publishingService;
     private final TransactionTemplate transaction;
     private final Clock clock;
 
     public ReviewRunner(ReviewRepository reviewRepository, PullRequestFilesService filesService,
-                        ReviewEngine engine, AIProperties properties,
+                        ReviewEngine engine, AIProperties properties, ReviewSettingsService settingsService,
+                        ReviewPublishingService publishingService,
                         PlatformTransactionManager transactionManager, Clock clock) {
         this.reviewRepository = reviewRepository;
         this.filesService = filesService;
         this.engine = engine;
+        this.settingsService = settingsService;
+        this.publishingService = publishingService;
         this.properties = properties;
         this.transaction = new TransactionTemplate(transactionManager);
         this.clock = clock;
@@ -62,7 +70,7 @@ public class ReviewRunner {
                     properties.limits().maxReviewCostUsd());
             boolean truncated = outcome.truncated() || files.truncated(); // GitHub listed only part of the files
 
-            transaction.executeWithoutResult(tx -> reviewRepository.findById(reviewId).ifPresent(review -> {
+            Boolean publish = transaction.execute(tx -> reviewRepository.findById(reviewId).map(review -> {
                 review.setFilesReviewed(outcome.plan().reviewedPaths().size());
                 review.setFilesSkipped(outcome.plan().filesSkipped());
                 review.setChunks(outcome.chunksSent());
@@ -74,9 +82,15 @@ public class ReviewRunner {
                 review.recount();
                 review.setStatus(ReviewStatus.SUCCEEDED);
                 review.setFinishedAt(clock.instant());
-            }));
+                // Automatic reviews go straight to GitHub if the user asked for that.
+                return review.getTriggeredBy() == ReviewTrigger.WEBHOOK
+                        && settingsService.settingsOf(review.getUser().getId()).isAutoPublish();
+            }).orElse(false));
             log.info("Review {} finished: {} finding(s), {} chunk(s)", reviewId, outcome.findings().size(),
                     outcome.chunksSent());
+            if (Boolean.TRUE.equals(publish)) {
+                publishingService.publishAutomatically(reviewId);
+            }
 
         } catch (AIServiceException e) {
             log.warn("Review {} failed: the AI provider failed", reviewId, e);

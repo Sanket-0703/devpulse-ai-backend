@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface GitHubAccountRepository extends JpaRepository<GitHubAccount, Long> {
@@ -13,6 +14,8 @@ public interface GitHubAccountRepository extends JpaRepository<GitHubAccount, Lo
     Optional<GitHubAccount> findByGithubId(Long githubId);
 
     Optional<GitHubAccount> findByUserId(Long userId);
+
+    List<GitHubAccount> findByInstallationId(Long installationId);
 
     @Modifying
     @Query("update GitHubAccount a set a.syncStatus = com.devpulse.backend.entity.SyncStatus.FAILED, "

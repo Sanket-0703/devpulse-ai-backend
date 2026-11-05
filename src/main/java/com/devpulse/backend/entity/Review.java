@@ -89,6 +89,23 @@ public class Review extends BaseEntity {
     @Column(nullable = false)
     private int lowCount;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
+    private ReviewTrigger triggeredBy = ReviewTrigger.MANUAL;
+
+    /** When the findings were posted to GitHub as a pull request review; null = not published. */
+    private Instant publishedAt;
+
+    private Long githubReviewId;
+
+    /** The review on GitHub (html_url). */
+    @Column(length = 1000)
+    private String githubReviewUrl;
+
+    /** Inline comments posted (the rest went into the review's summary). */
+    @Column(nullable = false)
+    private int publishedComments;
+
     /** Why the review failed, shown to the user. */
     @Column(length = 500)
     private String error;

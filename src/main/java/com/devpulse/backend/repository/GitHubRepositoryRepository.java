@@ -1,6 +1,7 @@
 package com.devpulse.backend.repository;
 
 import com.devpulse.backend.entity.GitHubRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
@@ -13,6 +14,13 @@ public interface GitHubRepositoryRepository
     List<GitHubRepository> findByGithubAccountId(Long githubAccountId);
 
     long countByGithubAccountId(Long githubAccountId);
+
+    /**
+     * The DevPulse rows for a GitHub repository seen through one installation
+     * (several users can share an organization's installation).
+     */
+    @EntityGraph(attributePaths = {"githubAccount", "githubAccount.user"})
+    List<GitHubRepository> findByGithubIdAndGithubAccountInstallationId(Long githubId, Long installationId);
 
     long countByGithubAccountUserId(Long userId);
 

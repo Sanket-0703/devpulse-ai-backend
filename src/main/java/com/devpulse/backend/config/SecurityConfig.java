@@ -58,6 +58,8 @@ public class SecurityConfig {
                                 "/api/auth/register", "/api/auth/login",
                                 "/api/auth/refresh", "/api/auth/logout", "/api/auth/demo").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/demo").permitAll()
+                        // GitHub's webhook deliveries prove themselves with a signature (WebhookSignature).
+                        .requestMatchers(HttpMethod.POST, "/api/github/webhooks").permitAll()
                         // Visited by the browser itself during GitHub sign-in (no token).
                         .requestMatchers(HttpMethod.GET, "/api/auth/github", "/api/github/oauth/callback").permitAll()
                         .requestMatchers("/actuator/health").permitAll()

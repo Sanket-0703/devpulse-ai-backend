@@ -3,6 +3,7 @@ package com.devpulse.backend.dto.review;
 import com.devpulse.backend.entity.PullRequest;
 import com.devpulse.backend.entity.Review;
 import com.devpulse.backend.entity.ReviewStatus;
+import com.devpulse.backend.entity.ReviewTrigger;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
@@ -19,6 +20,8 @@ public record ReviewResponse(
         @Schema(requiredMode = REQUIRED) String pullRequestTitle,
         @Schema(requiredMode = REQUIRED, description = "The commit that was reviewed") String headSha,
         @Schema(requiredMode = REQUIRED) ReviewStatus status,
+        @Schema(requiredMode = REQUIRED, description = "MANUAL (a button) or WEBHOOK (a push to the pull request)")
+        ReviewTrigger triggeredBy,
         @Schema(requiredMode = REQUIRED, example = "mock") String provider,
         @Schema(requiredMode = REQUIRED) String model,
         @Schema(requiredMode = REQUIRED) int filesReviewed,
@@ -32,6 +35,9 @@ public record ReviewResponse(
         BigDecimal estimatedCostUsd,
         @Schema(requiredMode = REQUIRED) FindingCounts openFindings,
         @Schema(description = "Why the review failed") String error,
+        @Schema(description = "When it was posted to GitHub; null = not published") Instant publishedAt,
+        @Schema(description = "The review on GitHub") String githubReviewUrl,
+        @Schema(requiredMode = REQUIRED, description = "Inline comments posted on GitHub") int publishedComments,
         @Schema(requiredMode = REQUIRED) Instant createdAt,
         Instant startedAt,
         Instant finishedAt
@@ -48,6 +54,7 @@ public record ReviewResponse(
                 pr.getTitle(),
                 review.getHeadSha(),
                 review.getStatus(),
+                review.getTriggeredBy(),
                 review.getProvider(),
                 review.getModel(),
                 review.getFilesReviewed(),
@@ -60,6 +67,9 @@ public record ReviewResponse(
                 new FindingCounts(review.getCriticalCount(), review.getHighCount(), review.getMediumCount(),
                         review.getLowCount()),
                 review.getError(),
+                review.getPublishedAt(),
+                review.getGithubReviewUrl(),
+                review.getPublishedComments(),
                 review.getCreatedAt(),
                 review.getStartedAt(),
                 review.getFinishedAt());
