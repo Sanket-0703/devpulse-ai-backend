@@ -21,7 +21,7 @@ https://github.com/settings/apps/new (GitHub → your avatar → **Settings** �
 | | **Enable Device Flow** | ☐ unchecked |
 | Post installation | **Setup URL** | leave empty (greyed out because of the option above) |
 | | **Redirect on update** | ✅ checked (after you change which repos the app can see, GitHub sends you back to DevPulse) |
-| Webhook | **Active** | ☐ **unchecked** for now. Level 9 turns it on. |
+| Webhook | **Active** | ☐ **unchecked** at first. Level 9 turns it on: see [WEBHOOKS_LOCAL.md](WEBHOOKS_LOCAL.md). |
 
 ### Permissions
 
@@ -34,7 +34,7 @@ Only what DevPulse needs. Everything not listed stays **No access**.
 | Repository | **Pull requests** | Read and write | Reading PRs (Level 6), posting review comments (Level 9) |
 | Account | **Email addresses** | Read-only | "Sign in with GitHub": find your verified email to link or create your DevPulse account |
 
-**Subscribe to events:** none for now (the webhook is off).
+**Subscribe to events:** none at first. From Level 9: **Pull request** (see [WEBHOOKS_LOCAL.md](WEBHOOKS_LOCAL.md)).
 
 **Where can this GitHub App be installed?** → **Only on this account**.
 
@@ -77,6 +77,7 @@ The backend reads `.env` at startup. Stop it and start it again (IntelliJ's **Ba
 
 ## Later
 
+- **Webhooks (Level 9):** automatic reviews need GitHub to reach your Mac. Follow [WEBHOOKS_LOCAL.md](WEBHOOKS_LOCAL.md): a webhook secret, a smee.io tunnel, and the *Pull request* event.
 - **Change which repositories DevPulse sees:** DevPulse → Settings → GitHub → *Manage repositories*, or GitHub → Settings → Applications → Installed GitHub Apps.
 - **Lost the client secret:** generate a new one on the app's page and update `.env`.
 - **Leaked a secret or the private key:** delete it on the app's page right away, generate a new one, update `.env`.

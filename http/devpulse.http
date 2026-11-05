@@ -106,6 +106,42 @@ Content-Type: application/json
   "code": "String q = \"SELECT * FROM users WHERE id = '\" + id + \"'\";\nSystem.out.println(q);"
 }
 
+### Review settings (automatic reviews, publishing)
+GET {{host}}/api/settings/reviews
+Authorization: Bearer {{accessToken}}
+
+### Change review settings
+PUT {{host}}/api/settings/reviews
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{"autoReview": true, "autoPublish": false, "minPublishSeverity": "MEDIUM"}
+
+### Latest webhook deliveries for your installation
+GET {{host}}/api/github/webhooks/deliveries
+Authorization: Bearer {{accessToken}}
+
+### Publish a review to GitHub — posts on the real pull request!
+POST {{host}}/api/reviews/{{reviewId}}/publish
+Authorization: Bearer {{accessToken}}
+
+### Webhook ping, signed like GitHub does (webhookSecret in http-client.private.env.json)
+< {%
+    const body = '{"zen":"Design for failure.","hook_id":1}';
+    const signature = crypto.hmac.sha256()
+        .withTextSecret(request.environment.get("webhookSecret"))
+        .updateWithText(body)
+        .digest().toHex();
+    request.variables.set("signature", "sha256=" + signature);
+%}
+POST {{host}}/api/github/webhooks
+Content-Type: application/json
+X-GitHub-Event: ping
+X-GitHub-Delivery: {{$uuid}}
+X-Hub-Signature-256: {{signature}}
+
+{"zen":"Design for failure.","hook_id":1}
+
 ### A bad token gives a JSON 401, never a 500
 GET {{host}}/api/auth/me
 Authorization: Bearer not-a-real-token
