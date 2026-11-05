@@ -44,7 +44,7 @@ import static org.awaitility.Awaitility.await;
  */
 class WebhookIntegrationTest extends GitHubAppIntegrationTest {
 
-    private static final String SECRET = "test-webhook-secret";
+    private static final String SECRET = "test-only-webhook-secret";
     private static final String NEW_SHA = "1234567890abcdef1234567890abcdef12345678";
 
     // Line 1 builds SQL from a string (a HIGH rule), line 2 prints to the console (a LOW AI finding).
