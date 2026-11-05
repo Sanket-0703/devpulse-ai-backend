@@ -6,7 +6,9 @@ import { NAV_ITEMS } from '@/components/layout/navigation'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { RegisterPage } from '@/features/auth/pages/RegisterPage'
 import { GuestOnly, RequireAuth } from '@/features/auth/routeGuards'
+import { DashboardPage } from '@/features/dashboard/pages/DashboardPage'
 import { GitHubCallbackPage } from '@/features/github/GitHubCallbackPage'
+import { PlaygroundPage } from '@/features/playground/pages/PlaygroundPage'
 import { PullRequestDetailPage } from '@/features/pull-requests/pages/PullRequestDetailPage'
 import { ReviewsPage } from '@/features/reviews/pages/ReviewsPage'
 import { RepositoriesPage } from '@/features/repositories/pages/RepositoriesPage'
@@ -20,7 +22,7 @@ import { NotFoundPage } from '@/pages/NotFoundPage'
 import { RouteErrorPage } from '@/pages/RouteErrorPage'
 
 // Pages already built; every other nav item still shows a ComingSoonPage.
-const BUILT_PAGES = new Set(['/settings', '/repositories', '/reviews'])
+const BUILT_PAGES = new Set(['/dashboard', '/settings', '/repositories', '/reviews', '/playground'])
 
 export const routes: RouteObject[] = [
   {
@@ -58,7 +60,9 @@ export const routes: RouteObject[] = [
               { path: '/repositories', element: <RepositoriesPage /> },
               { path: '/repositories/:id', element: <RepositoryDetailPage /> },
               { path: '/repositories/:id/pulls/:number', element: <PullRequestDetailPage /> },
+              { path: '/dashboard', element: <DashboardPage /> },
               { path: '/reviews', element: <ReviewsPage /> },
+              { path: '/playground', element: <PlaygroundPage /> },
               {
                 path: '/settings',
                 element: <SettingsLayout />,

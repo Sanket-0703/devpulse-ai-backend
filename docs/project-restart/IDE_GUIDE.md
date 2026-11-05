@@ -471,6 +471,58 @@ To see the partial unique index at work, try inserting a second `QUEUED` row for
 
 `DiffView` now takes `annotations`. Put the cursor on `DiffView` and press `⇧F12` (*Find All References*) to see every place that renders it. `F12` (*Go to Definition*) on `useReviewState` jumps to the hook both the panel and the diff read from.
 
+## Level 8 — Refactoring safely and checking limits
+
+Level 8 moved code between classes (the review engine, the usage service) and added rate limits. These are the tools for each.
+
+### IntelliJ: extracting a class
+
+`ReviewEngine` came out of `ReviewRunner`. IntelliJ can do this kind of move for you:
+1. Select the method (`review(...)` in the old runner) → **Refactor → Extract Delegate…** (or *Move Members* `F6` into a new class).
+2. IntelliJ creates the class, moves the method and its fields, and rewrites the callers.
+3. Run the tests of the class you took it from (`⌃⇧R` inside `ReviewRunnerTest`): if they still pass, the move didn't change behaviour. That's what made this refactor safe.
+
+**Change Signature** (`⌘F6`) is the tool for "add a constructor parameter everywhere". It updates every `new ReviewServiceImpl(...)`, including the tests.
+
+### IntelliJ: is a build really green?
+
+`mvn -q` hides output, and old test reports stay in `target/surefire-reports` after a failed build. Look at the exit code instead:
+
+```bash
+./mvnw -q verify; echo "exit $?"
+```
+
+`exit 0` means it compiled and every test passed. In IntelliJ, the Maven tool window (*View → Tool Windows → Maven*) → *Lifecycle → verify* shows a red or green result. (Level 7's CI failure was exactly this: a test file that didn't compile, while old reports looked fine.)
+
+### Redis: watch the rate limiter
+
+Run a few Playground reviews, then:
+
+```bash
+redis-cli --scan --pattern 'ratelimit:playground:*'
+```
+
+```bash
+redis-cli get ratelimit:playground:<your user id>
+```
+
+```bash
+redis-cli ttl ratelimit:playground:<your user id>
+```
+
+The value counts your runs this minute; the TTL counts down to the end of the window. After it hits -2 (gone), you can run again.
+
+### IntelliJ HTTP Client: the new endpoints
+
+`http/devpulse.http` has **Dashboard** and **Playground review**. Run the Playground request six times quickly: the sixth answers `429` with a `Retry-After` header, shown in the response pane.
+
+### VS Code: rename and move with confidence
+
+The usage cards moved from `ReviewsPage.tsx` to `features/reviews/UsageCards.tsx`. In VS Code:
+- select the function → `⌘.` → **Move to a new file**;
+- `⇧F12` on `UsageCards` lists both users (the Reviews page and the dashboard);
+- `npm run check` in the terminal runs lint, format, type-check and tests in one go: the frontend's "is it really green?".
+
 ## Reviewing and committing changes (IntelliJ)
 
 Use IntelliJ for Git: it opens the whole repo (backend, frontend, docs) and has the best diff viewer.

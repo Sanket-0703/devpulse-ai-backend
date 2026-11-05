@@ -14,6 +14,10 @@ public interface GitHubRepositoryRepository
 
     long countByGithubAccountId(Long githubAccountId);
 
+    long countByGithubAccountUserId(Long userId);
+
+    long countByGithubAccountUserIdAndReviewEnabledTrue(Long userId);
+
     /** Only if it belongs to this DevPulse user: someone else's id behaves like a missing one. */
     Optional<GitHubRepository> findByIdAndGithubAccountUserId(Long id, Long userId);
 }

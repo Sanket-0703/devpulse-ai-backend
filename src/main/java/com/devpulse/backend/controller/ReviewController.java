@@ -6,6 +6,7 @@ import com.devpulse.backend.dto.review.DismissFindingRequest;
 import com.devpulse.backend.dto.review.ReviewDetailResponse;
 import com.devpulse.backend.dto.review.ReviewResponse;
 import com.devpulse.backend.security.CustomUserPrincipal;
+import com.devpulse.backend.service.AIUsageService;
 import com.devpulse.backend.service.ReviewService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,9 +27,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class ReviewController {
 
     private final ReviewService reviewService;
+    private final AIUsageService usageService;
 
-    public ReviewController(ReviewService reviewService) {
+    public ReviewController(ReviewService reviewService, AIUsageService usageService) {
         this.reviewService = reviewService;
+        this.usageService = usageService;
     }
 
     @GetMapping
@@ -42,9 +45,9 @@ public class ReviewController {
     }
 
     @GetMapping("/usage")
-    @Operation(summary = "Your AI usage today and this month, and your limits")
+    @Operation(summary = "Your AI usage today and this month (reviews and Playground), and your limits")
     public AIUsageResponse usage(@AuthenticationPrincipal CustomUserPrincipal principal) {
-        return reviewService.usage(principal.getId());
+        return usageService.usage(principal.getId());
     }
 
     @GetMapping("/{id}")

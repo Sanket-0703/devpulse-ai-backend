@@ -96,9 +96,10 @@ class ReviewRunnerTest {
     private ReviewRunner runner(BigDecimal maxReviewCost) {
         AIProperties properties = new AIProperties("openai", "gpt-4o-mini", 0.2,
                 new AIProperties.Review(60, 10),
-                new AIProperties.Limits(20, BigDecimal.ONE, maxReviewCost),
+                new AIProperties.Limits(20, BigDecimal.ONE, maxReviewCost, 30, 5),
                 new AIProperties.Pricing(new BigDecimal("0.15"), new BigDecimal("0.60")));
-        return new ReviewRunner(reviewRepository, filesService, aiProvider, properties, transactionManager,
+        return new ReviewRunner(reviewRepository, filesService, new ReviewEngine(aiProvider, properties), properties,
+                transactionManager,
                 Clock.fixed(Instant.parse("2026-10-29T10:00:00Z"), ZoneOffset.UTC));
     }
 

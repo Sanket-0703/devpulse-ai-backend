@@ -77,6 +77,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/playground/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Review a pasted snippet
+         * @description Security rules + the AI model, like a pull request review. The code isn't stored. 400 for an empty or over-long snippet; 429 over the per-minute or daily limits.
+         */
+        post: operations["review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/github/repositories/{repositoryId}/pull-requests/{number}/reviews": {
         parameters: {
             query?: never;
@@ -300,22 +320,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/ai/review": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["review"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/reviews/{id}/findings/{findingId}": {
         parameters: {
             query?: never;
@@ -446,7 +450,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Your AI usage today and this month, and your limits */
+        /** Your AI usage today and this month (reviews and Playground), and your limits */
         get: operations["usage"];
         put?: never;
         post?: never;
@@ -568,6 +572,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Getting-started steps, counts, open findings, recent reviews and AI usage */
+        get: operations["summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/me": {
         parameters: {
             query?: never;
@@ -680,6 +701,42 @@ export interface components {
             expiresIn: number;
             user: components["schemas"]["UserResponse"];
         };
+        PlaygroundRequest: {
+            /** @enum {string} */
+            language: "JAVA" | "KOTLIN" | "JAVASCRIPT" | "TYPESCRIPT" | "PYTHON" | "GO" | "SQL" | "OTHER";
+            code: string;
+        };
+        PlaygroundFinding: {
+            /** @enum {string} */
+            source: "AI" | "RULE";
+            ruleId?: string;
+            /** @enum {string} */
+            severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+            /** @enum {string} */
+            category: "SECURITY" | "BUG" | "PERFORMANCE" | "MAINTAINABILITY" | "CODE_QUALITY";
+            title: string;
+            description: string;
+            recommendation?: string;
+            /**
+             * Format: int32
+             * @description Line of the snippet (1-based); null for the whole snippet
+             */
+            line?: number;
+        };
+        PlaygroundResponse: {
+            /** @description Most severe first */
+            findings: components["schemas"]["PlaygroundFinding"][];
+            /** @example mock */
+            provider: string;
+            model: string;
+            /** Format: int32 */
+            promptTokens: number;
+            /** Format: int32 */
+            completionTokens: number;
+            estimatedCostUsd: number;
+            /** @description A limit left part of the snippet unreviewed */
+            truncated: boolean;
+        };
         FindingCounts: {
             /** Format: int32 */
             critical: number;
@@ -779,19 +836,6 @@ export interface components {
             email: string;
             password: string;
         };
-        AIReviewFinding: {
-            severity?: string;
-            category?: string;
-            title?: string;
-            description?: string;
-            recommendation?: string;
-            file?: string;
-            /** Format: int32 */
-            line?: number;
-        };
-        AIReviewResponse: {
-            findings?: components["schemas"]["AIReviewFinding"][];
-        };
         DismissFindingRequest: {
             dismissed: boolean;
         };
@@ -876,6 +920,10 @@ export interface components {
             reviewsToday: number;
             /** Format: int32 */
             dailyReviewLimit: number;
+            /** Format: int64 */
+            playgroundRunsToday: number;
+            /** Format: int32 */
+            dailyPlaygroundLimit: number;
             costTodayUsd: number;
             dailyCostLimitUsd: number;
             /** Format: int64 */
@@ -976,6 +1024,34 @@ export interface components {
             installed: boolean;
             /** @description GitHub page for choosing which repositories DevPulse can see; null if not installed */
             manageRepositoriesUrl?: string;
+        };
+        DashboardResponse: {
+            onboarding: components["schemas"]["Onboarding"];
+            stats: components["schemas"]["Stats"];
+            /** @description Open findings of each pull request's latest successful review, added up */
+            openFindings: components["schemas"]["FindingCounts"];
+            /** @description The 5 newest reviews */
+            recentReviews: components["schemas"]["ReviewResponse"][];
+            usage: components["schemas"]["AIUsageResponse"];
+        };
+        Onboarding: {
+            githubConnected: boolean;
+            appInstalled: boolean;
+            repositoriesSynced: boolean;
+            reviewEnabled: boolean;
+            firstReviewDone: boolean;
+        };
+        Stats: {
+            /** Format: int64 */
+            repositories: number;
+            /** Format: int64 */
+            reviewEnabledRepositories: number;
+            /** Format: int64 */
+            openPullRequests: number;
+            /** Format: int64 */
+            reviewsLast30Days: number;
+            /** Format: int64 */
+            reviewsTotal: number;
         };
         DemoStatusResponse: {
             /** @description Whether "Try the demo" is available */
@@ -1115,6 +1191,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": string;
+                };
+            };
+        };
+    };
+    review: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaygroundRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlaygroundResponse"];
                 };
             };
         };
@@ -1407,30 +1507,6 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AuthResponse"];
-                };
-            };
-        };
-    };
-    review: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": string;
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["AIReviewResponse"];
                 };
             };
         };
@@ -1799,6 +1875,26 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DashboardResponse"];
+                };
             };
         };
     };

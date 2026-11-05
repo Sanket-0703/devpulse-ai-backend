@@ -1,7 +1,6 @@
 package com.devpulse.backend.service;
 
 import com.devpulse.backend.dto.PageResponse;
-import com.devpulse.backend.dto.review.AIUsageResponse;
 import com.devpulse.backend.dto.review.ReviewDetailResponse;
 import com.devpulse.backend.dto.review.ReviewResponse;
 
@@ -29,6 +28,4 @@ public interface ReviewService {
 
     /** Hides (or brings back) a finding; the review's open counts follow. */
     ReviewDetailResponse setDismissed(Long userId, Long reviewId, Long findingId, boolean dismissed);
-
-    AIUsageResponse usage(Long userId);
 }

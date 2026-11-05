@@ -92,6 +92,20 @@ Authorization: Bearer {{accessToken}}
 GET {{host}}/api/reviews/usage
 Authorization: Bearer {{accessToken}}
 
+### Dashboard — onboarding steps, totals, open findings, recent reviews, usage
+GET {{host}}/api/dashboard
+Authorization: Bearer {{accessToken}}
+
+### Playground review — run it 6 times within a minute to see the 429
+POST {{host}}/api/playground/review
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "language": "JAVA",
+  "code": "String q = \"SELECT * FROM users WHERE id = '\" + id + \"'\";\nSystem.out.println(q);"
+}
+
 ### A bad token gives a JSON 401, never a 500
 GET {{host}}/api/auth/me
 Authorization: Bearer not-a-real-token

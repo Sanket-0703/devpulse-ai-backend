@@ -8,6 +8,7 @@ export type ReviewDetail = components['schemas']['ReviewDetailResponse']
 export type Finding = components['schemas']['ReviewFindingResponse']
 export type Severity = Finding['severity']
 export type AIUsage = components['schemas']['AIUsageResponse']
+export type FindingCounts = Review['openFindings']
 
 export const SEVERITIES: Severity[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
 

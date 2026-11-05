@@ -145,8 +145,8 @@ Decision: **GitHub App** (fine-grained permissions, per-repo install, expiring t
 
 ## Level 8 — Dashboard & Playground
 
-- [ ] BE: dashboard summary API; hardened "paste code → review" endpoint
-- [ ] FE: dashboard (stats, severity chart, recent reviews, AI usage and cost, onboarding checklist); Playground page
+- [x] BE: dashboard summary API; hardened "paste code → review" endpoint
+- [x] FE: dashboard (stats, severity chart, recent reviews, AI usage and cost, onboarding checklist); Playground page
 
 ## Level 8.5 — Framework upgrade
 
@@ -172,7 +172,7 @@ Decision: **GitHub App** (fine-grained permissions, per-repo install, expiring t
 ## Level 11 — Polish & hardening (still local)
 
 - [ ] End-to-end browser tests (Playwright) for every journey above
-- [ ] Rate limiting, input size limits, timeouts and retries for GitHub and the AI provider
+- [ ] Rate limiting, input size limits, timeouts and retries for GitHub and the AI provider; FE: retry the session refresh when the backend is briefly unreachable instead of showing the sign-in page
 - [ ] Security headers and a security review pass
 - [ ] Accessibility and mobile-width check
 - [ ] Whole app (frontend + backend + Postgres + Redis) runs with one `docker compose up`

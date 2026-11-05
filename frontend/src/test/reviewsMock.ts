@@ -147,6 +147,8 @@ export const reviewsHandlers = [
       model: 'mock-reviewer',
       reviewsToday: state.details.length,
       dailyReviewLimit: 20,
+      playgroundRunsToday: 0,
+      dailyPlaygroundLimit: 30,
       costTodayUsd: 0,
       dailyCostLimitUsd: 1,
       reviewsThisMonth: state.details.length,

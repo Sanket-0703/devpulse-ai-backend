@@ -6,6 +6,8 @@ import { toast } from 'sonner'
 import { setAccessToken } from '@/features/auth/session'
 
 import { resetAuthMock } from './authMock'
+import { resetDashboardMock } from './dashboardMock'
+import { resetPlaygroundMock } from './playgroundMock'
 import { resetPullRequestsMock } from './pullRequestsMock'
 import { resetRepositoriesMock } from './repositoriesMock'
 import { resetReviewsMock } from './reviewsMock'
@@ -20,6 +22,8 @@ beforeEach(() => {
   resetRepositoriesMock()
   resetPullRequestsMock()
   resetReviewsMock()
+  resetDashboardMock()
+  resetPlaygroundMock()
 })
 afterEach(() => {
   cleanup()
