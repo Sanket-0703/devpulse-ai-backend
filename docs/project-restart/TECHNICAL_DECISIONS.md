@@ -83,6 +83,7 @@ Each decision has a recommendation. Items marked **⚠ Needs approval** are ones
 ### D-09 · Spring Boot version
 - On 3.5.6. Boot 4.x is GA, and 3.5's open-source support window is ending or has ended.
 - **Recommendation:** first move to the latest 3.5.x patch (low risk) in M0. Schedule a separate Boot 4 / Spring AI 2 upgrade after M4, when tests exist to catch regressions. Don't combine the upgrade with feature work.
+- **Outcome (Level 8.5, November 2026):** done on its own branch, with no feature work. Spring Boot 4.1.2 + Spring AI 2.0.2 (the pair Spring AI 2.0.2 is built on), springdoc 3.2.0, Testcontainers 2, Jackson 3, Hibernate 7. All 185 backend tests and the browser checks passed after the changes described in [LEVEL_8_5.md](../levels/LEVEL_8_5.md).
 
 ### D-10 · Docker runtime on the Mac
 - **Recommendation:** Docker Desktop (Testcontainers works with zero config; free for personal use). OrbStack is a lighter alternative but may need a Testcontainers host setting.
