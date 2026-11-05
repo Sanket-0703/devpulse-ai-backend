@@ -19,6 +19,8 @@ import com.devpulse.backend.service.RepositorySyncService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -277,6 +279,7 @@ public class RepositorySyncServiceImpl implements RepositorySyncService {
 
     // A restart kills running syncs; don't leave them "RUNNING" forever.
     @EventListener(ApplicationReadyEvent.class)
+    @Order(Ordered.HIGHEST_PRECEDENCE + 1) // after StaleLockCleaner, before the demo seeder starts jobs
     public void failInterruptedSyncs() {
         Integer interrupted = transaction.execute(tx -> accountRepository.failRunningSyncs(
                 "The sync was interrupted by a server restart. Please sync again."));

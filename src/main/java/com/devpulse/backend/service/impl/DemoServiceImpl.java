@@ -15,6 +15,7 @@ import com.devpulse.backend.repository.GitHubRepositoryRepository;
 import com.devpulse.backend.repository.PullRequestRepository;
 import com.devpulse.backend.repository.ReviewRepository;
 import com.devpulse.backend.repository.UserRepository;
+import com.devpulse.backend.service.CodeIndexService;
 import com.devpulse.backend.service.DemoService;
 import com.devpulse.backend.service.RedisService;
 import com.devpulse.backend.service.ReviewService;
@@ -22,6 +23,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -41,6 +44,7 @@ import java.util.List;
  * <pre>
  * Demo User ── GitHub "demo-dev" (no token; a placeholder installation, never used)
  *   └── devpulse-demo/shop-api (AI review on)
+ *         ├── code index ── demo/shop-api-source.zip (search works without GitHub)
  *         └── #12 "Add checkout endpoint" ── files: demo/shop-api-pr-12-files.json
  *               └── a mock review, run through the real review pipeline
  * </pre>
@@ -64,6 +68,7 @@ public class DemoServiceImpl implements DemoService {
     private final PullRequestRepository pullRequestRepository;
     private final ReviewRepository reviewRepository;
     private final ReviewService reviewService;
+    private final CodeIndexService codeIndexService;
     private final RedisService redisService;
     private final JsonMapper jsonMapper;
     private final Resource demoFiles;
@@ -78,6 +83,7 @@ public class DemoServiceImpl implements DemoService {
             PullRequestRepository pullRequestRepository,
             ReviewRepository reviewRepository,
             ReviewService reviewService,
+            CodeIndexService codeIndexService,
             RedisService redisService,
             JsonMapper jsonMapper,
             @Value("classpath:demo/shop-api-pr-12-files.json") Resource demoFiles,
@@ -91,6 +97,7 @@ public class DemoServiceImpl implements DemoService {
         this.pullRequestRepository = pullRequestRepository;
         this.reviewRepository = reviewRepository;
         this.reviewService = reviewService;
+        this.codeIndexService = codeIndexService;
         this.redisService = redisService;
         this.jsonMapper = jsonMapper;
         this.demoFiles = demoFiles;
@@ -115,12 +122,17 @@ public class DemoServiceImpl implements DemoService {
 
     /** Creates whatever part of the demo is missing; safe to run on every startup. */
     @EventListener(ApplicationReadyEvent.class)
+    @Order(Ordered.LOWEST_PRECEDENCE) // after the startup cleanups, so what it starts isn't marked interrupted
     public void seed() {
         if (!properties.enabled()) {
             return;
         }
         Seeded seeded = transaction.execute(tx -> seedDatabase());
         cacheFiles(seeded.repositoryGithubId(), seeded.headSha());
+        if (!seeded.indexed()) {
+            // The demo's code ships as demo/shop-api-source.zip, so search works without GitHub.
+            codeIndexService.start(seeded.repositoryId());
+        }
         if (!seeded.reviewed()) {
             // Through the real pipeline: rules + mock AI, in the background.
             reviewService.start(seeded.userId(), seeded.repositoryId(), DEMO_PR_NUMBER);
@@ -128,7 +140,8 @@ public class DemoServiceImpl implements DemoService {
         log.info("Demo account ready: {}", properties.email());
     }
 
-    private record Seeded(Long userId, Long repositoryId, long repositoryGithubId, String headSha, boolean reviewed) {
+    private record Seeded(Long userId, Long repositoryId, long repositoryGithubId, String headSha, boolean reviewed,
+                          boolean indexed) {
     }
 
     private Seeded seedDatabase() {
@@ -207,7 +220,7 @@ public class DemoServiceImpl implements DemoService {
         boolean reviewed = !reviewRepository.findTop20ByPullRequestIdOrderByCreatedAtDesc(pullRequest.getId())
                 .isEmpty();
         return new Seeded(user.getId(), repository.getId(), repository.getGithubId(), pullRequest.getHeadSha(),
-                reviewed);
+                reviewed, repository.getIndexStatus() == SyncStatus.SUCCEEDED);
     }
 
     private void cacheFiles(long repositoryGithubId, String headSha) {

@@ -4,6 +4,8 @@ import com.devpulse.backend.common.BaseEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -78,6 +80,29 @@ public class GitHubRepository extends BaseEntity {
 
     /** When this repository's pull requests were last synced; null = never. */
     private Instant pullRequestsSyncedAt;
+
+    // ----- code index (Level 10) -----
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private SyncStatus indexStatus = SyncStatus.NEVER;
+
+    /** When the last successful index finished. */
+    private Instant indexedAt;
+
+    /** The default branch's commit that was indexed. */
+    @Column(length = 64)
+    private String indexedCommitSha;
+
+    @Column(nullable = false)
+    private int indexedFiles;
+
+    @Column(nullable = false)
+    private int indexedChunks;
+
+    /** Why the last index failed, shown to the user. */
+    @Column(length = 500)
+    private String indexError;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "github_account_id", nullable = false)

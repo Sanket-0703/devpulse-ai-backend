@@ -15,6 +15,10 @@ File: path/to/File.java
 - The number at the start of a line is its line number in the NEW version of the file.
 - Lines with "+" were added by this pull request, lines with "-" were removed, the rest are context.
 
+After the diff there may be a section "=== Related code from the repository (context only: do not review it) ===".
+It shows existing code from elsewhere in the repository (callers, interfaces, similar code) to help you
+understand the change. Use it for context only: never report findings on it, and never use its file paths.
+
 Review only the added lines (use context lines to understand them). Look for:
 
 - Security vulnerabilities

@@ -3,6 +3,7 @@ package com.devpulse.backend.service.impl;
 import com.devpulse.backend.config.AIProperties;
 import com.devpulse.backend.dto.AIReviewResult;
 import com.devpulse.backend.dto.github.PullRequestFilesResponse;
+import com.devpulse.backend.entity.GitHubRepository;
 import com.devpulse.backend.entity.PullRequest;
 import com.devpulse.backend.entity.Review;
 import com.devpulse.backend.entity.ReviewStatus;
@@ -10,6 +11,7 @@ import com.devpulse.backend.exception.AIServiceException;
 import com.devpulse.backend.exception.GitHubIntegrationException;
 import com.devpulse.backend.repository.ReviewRepository;
 import com.devpulse.backend.service.AIProvider;
+import com.devpulse.backend.service.CodeSearchService;
 import com.devpulse.backend.service.PullRequestFilesService;
 import com.devpulse.backend.service.ReviewPublishingService;
 import com.devpulse.backend.service.ReviewSettingsService;
@@ -45,6 +47,7 @@ class ReviewRunnerTest {
     @Mock private PlatformTransactionManager transactionManager;
     @Mock private ReviewSettingsService settingsService;
     @Mock private ReviewPublishingService publishingService;
+    @Mock private CodeSearchService searchService;
 
     private Review review;
     private PullRequest pullRequest;
@@ -52,6 +55,7 @@ class ReviewRunnerTest {
     @BeforeEach
     void setUp() {
         pullRequest = new PullRequest();
+        pullRequest.setGithubRepository(new GitHubRepository()); // not indexed: no related code
         review = new Review();
         review.setPullRequest(pullRequest);
         when(reviewRepository.findForRun(REVIEW_ID)).thenReturn(Optional.of(review));
@@ -103,7 +107,7 @@ class ReviewRunnerTest {
                 new AIProperties.Limits(20, BigDecimal.ONE, maxReviewCost, 30, 5),
                 new AIProperties.Pricing(new BigDecimal("0.15"), new BigDecimal("0.60")));
         return new ReviewRunner(reviewRepository, filesService, new ReviewEngine(aiProvider, properties), properties,
-                settingsService, publishingService, transactionManager,
+                settingsService, publishingService, searchService, transactionManager,
                 Clock.fixed(Instant.parse("2026-10-29T10:00:00Z"), ZoneOffset.UTC));
     }
 

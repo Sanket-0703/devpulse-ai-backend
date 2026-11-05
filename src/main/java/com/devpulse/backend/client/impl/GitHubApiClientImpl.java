@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import tools.jackson.databind.JsonNode;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -30,16 +31,22 @@ public class GitHubApiClientImpl implements GitHubApiClient {
 
     private final GitHubTokenService githubTokenService;
     private final RestClient restClient;
+    /** Same, with a longer read timeout: a repository archive can take a while to download. */
+    private final RestClient downloadClient;
 
     public GitHubApiClientImpl(GitHubTokenService githubTokenService, GitHubProperties properties) {
         this.githubTokenService = githubTokenService;
+        this.restClient = client(properties, Duration.ofSeconds(15));
+        this.downloadClient = client(properties, Duration.ofSeconds(60));
+    }
 
+    private static RestClient client(GitHubProperties properties, Duration readTimeout) {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofSeconds(5));
-        requestFactory.setReadTimeout(Duration.ofSeconds(15));
+        requestFactory.setReadTimeout(readTimeout);
 
         // Headers GitHub recommends on every REST call.
-        this.restClient = RestClient.builder()
+        return RestClient.builder()
                 .baseUrl(properties.apiUrl())
                 .requestFactory(requestFactory)
                 .defaultHeader("Accept", "application/vnd.github+json")
@@ -96,6 +103,26 @@ public class GitHubApiClientImpl implements GitHubApiClient {
                 .headers(h -> h.setBearerAuth(installationToken))
                 .retrieve()
                 .body(GitHubInstallationRepositoriesResponse.class));
+    }
+
+    @Override
+    public String getBranchHeadSha(String installationToken, long githubRepositoryId, String branch) {
+        JsonNode body = call(() -> restClient.get()
+                .uri("/repositories/{id}/branches/{branch}", githubRepositoryId, branch)
+                .headers(h -> h.setBearerAuth(installationToken))
+                .retrieve()
+                .body(JsonNode.class));
+        return body == null ? null : body.path("commit").path("sha").asText(null);
+    }
+
+    @Override
+    public byte[] downloadZipball(String installationToken, long githubRepositoryId, String ref) {
+        // GitHub answers with a redirect to a short-lived download URL; the client follows it.
+        return call(() -> downloadClient.get()
+                .uri("/repositories/{id}/zipball/{ref}", githubRepositoryId, ref)
+                .headers(h -> h.setBearerAuth(installationToken))
+                .retrieve()
+                .body(byte[].class));
     }
 
     @Override

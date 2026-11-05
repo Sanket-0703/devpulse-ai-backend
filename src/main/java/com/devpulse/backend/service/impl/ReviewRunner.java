@@ -2,25 +2,32 @@ package com.devpulse.backend.service.impl;
 
 import com.devpulse.backend.config.AIProperties;
 import com.devpulse.backend.dto.github.PullRequestFilesResponse;
+import com.devpulse.backend.entity.GitHubRepository;
 import com.devpulse.backend.entity.PullRequest;
 import com.devpulse.backend.entity.Review;
 import com.devpulse.backend.entity.ReviewStatus;
 import com.devpulse.backend.entity.ReviewTrigger;
+import com.devpulse.backend.entity.SyncStatus;
 import com.devpulse.backend.exception.AIServiceException;
 import com.devpulse.backend.exception.GitHubIntegrationException;
 import com.devpulse.backend.repository.ReviewRepository;
+import com.devpulse.backend.review.ReviewPlan;
+import com.devpulse.backend.service.CodeSearchService;
 import com.devpulse.backend.service.PullRequestFilesService;
 import com.devpulse.backend.service.ReviewPublishingService;
 import com.devpulse.backend.service.ReviewSettingsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Clock;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * The review job, run on a background thread: the pull request's files
@@ -39,18 +46,20 @@ public class ReviewRunner {
     private final AIProperties properties;
     private final ReviewSettingsService settingsService;
     private final ReviewPublishingService publishingService;
+    private final CodeSearchService searchService;
     private final TransactionTemplate transaction;
     private final Clock clock;
 
     public ReviewRunner(ReviewRepository reviewRepository, PullRequestFilesService filesService,
                         ReviewEngine engine, AIProperties properties, ReviewSettingsService settingsService,
-                        ReviewPublishingService publishingService,
+                        ReviewPublishingService publishingService, CodeSearchService searchService,
                         PlatformTransactionManager transactionManager, Clock clock) {
         this.reviewRepository = reviewRepository;
         this.filesService = filesService;
         this.engine = engine;
         this.settingsService = settingsService;
         this.publishingService = publishingService;
+        this.searchService = searchService;
         this.properties = properties;
         this.transaction = new TransactionTemplate(transactionManager);
         this.clock = clock;
@@ -66,14 +75,21 @@ public class ReviewRunner {
             });
 
             PullRequestFilesResponse files = filesService.get(pullRequest);
+            GitHubRepository repository = pullRequest.getGithubRepository();
+            // RAG: with an index, each chunk goes to the model with the most related code of the repository.
+            Function<ReviewPlan.Chunk, CodeSearchService.ReviewContext> context =
+                    repository.getIndexStatus() == SyncStatus.SUCCEEDED
+                            ? chunk -> searchService.reviewContext(repository.getId(), chunk.text(), chunk.paths())
+                            : chunk -> null;
             ReviewEngine.Analysis outcome = engine.analyze(files.files(), properties.review().maxChunks(),
-                    properties.limits().maxReviewCostUsd());
+                    properties.limits().maxReviewCostUsd(), context);
             boolean truncated = outcome.truncated() || files.truncated(); // GitHub listed only part of the files
 
             Boolean publish = transaction.execute(tx -> reviewRepository.findById(reviewId).map(review -> {
                 review.setFilesReviewed(outcome.plan().reviewedPaths().size());
                 review.setFilesSkipped(outcome.plan().filesSkipped());
                 review.setChunks(outcome.chunksSent());
+                review.setContextChunks(outcome.contextChunks());
                 review.setTruncated(truncated);
                 review.setPromptTokens(outcome.promptTokens());
                 review.setCompletionTokens(outcome.completionTokens());
@@ -115,6 +131,7 @@ public class ReviewRunner {
     // A restart kills running reviews; don't leave them "running" forever
     // (that would also block new reviews of the same pull request).
     @EventListener(ApplicationReadyEvent.class)
+    @Order(Ordered.HIGHEST_PRECEDENCE + 1) // after StaleLockCleaner, before the demo seeder starts jobs
     public void failInterruptedReviews() {
         Integer failed = transaction.execute(tx -> reviewRepository.failAll(
                 List.of(ReviewStatus.QUEUED, ReviewStatus.RUNNING), ReviewStatus.FAILED,

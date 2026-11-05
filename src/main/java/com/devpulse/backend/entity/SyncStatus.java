@@ -1,8 +1,8 @@
 package com.devpulse.backend.entity;
 
-/** State of the last repository sync for a GitHub account. */
+/** State of a background job: an account's repository sync, or a repository's code index. */
 public enum SyncStatus {
-    /** No sync has run yet (e.g. the app isn't installed). */
+    /** It has never run (e.g. the app isn't installed, or the repository was never indexed). */
     NEVER,
     RUNNING,
     SUCCEEDED,

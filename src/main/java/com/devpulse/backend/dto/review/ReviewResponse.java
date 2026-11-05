@@ -27,6 +27,8 @@ public record ReviewResponse(
         @Schema(requiredMode = REQUIRED) int filesReviewed,
         @Schema(requiredMode = REQUIRED, description = "Removed, binary or generated files") int filesSkipped,
         @Schema(requiredMode = REQUIRED, description = "AI requests made") int chunks,
+        @Schema(requiredMode = REQUIRED, description = "Related code snippets from the repository's index given to the model")
+        int contextChunks,
         @Schema(requiredMode = REQUIRED, description = "A limit stopped the review before the end of the diff")
         boolean truncated,
         @Schema(requiredMode = REQUIRED) int promptTokens,
@@ -60,6 +62,7 @@ public record ReviewResponse(
                 review.getFilesReviewed(),
                 review.getFilesSkipped(),
                 review.getChunks(),
+                review.getContextChunks(),
                 review.isTruncated(),
                 review.getPromptTokens(),
                 review.getCompletionTokens(),
