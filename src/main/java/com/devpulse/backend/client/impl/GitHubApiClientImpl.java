@@ -2,12 +2,14 @@ package com.devpulse.backend.client.impl;
 
 import com.devpulse.backend.client.GitHubApiClient;
 import com.devpulse.backend.config.GitHubProperties;
+import com.devpulse.backend.dto.github.GitHubCreateReviewRequest;
 import com.devpulse.backend.dto.github.GitHubEmailResponse;
 import com.devpulse.backend.dto.github.GitHubInstallationRepositoriesResponse;
 import com.devpulse.backend.dto.github.GitHubInstallationTokenResponse;
 import com.devpulse.backend.dto.github.GitHubInstallationsResponse;
 import com.devpulse.backend.dto.github.GitHubPullRequestFileResponse;
 import com.devpulse.backend.dto.github.GitHubPullRequestResponse;
+import com.devpulse.backend.dto.github.GitHubReviewResponse;
 import com.devpulse.backend.dto.github.GitHubUserResponse;
 import com.devpulse.backend.entity.GitHubAccount;
 import com.devpulse.backend.exception.GitHubIntegrationException;
@@ -97,6 +99,18 @@ public class GitHubApiClientImpl implements GitHubApiClient {
     }
 
     @Override
+    public GitHubReviewResponse createPullRequestReview(
+            String installationToken, long githubRepositoryId, int number, GitHubCreateReviewRequest request) {
+
+        return call(() -> restClient.post()
+                .uri("/repositories/{id}/pulls/{number}/reviews", githubRepositoryId, number)
+                .headers(h -> h.setBearerAuth(installationToken))
+                .body(request)
+                .retrieve()
+                .body(GitHubReviewResponse.class));
+    }
+
+    @Override
     public GitHubUserResponse getAuthenticatedUser(GitHubAccount account) {
         return getAuthenticatedUser(githubTokenService.getValidAccessToken(account));
     }
@@ -139,6 +153,10 @@ public class GitHubApiClientImpl implements GitHubApiClient {
     private static <T> T call(Supplier<T> request) {
         try {
             return request.get();
+        } catch (HttpClientErrorException.UnprocessableContent e) {
+            // GitHub understood the request but refused it (e.g. a line that isn't in the diff).
+            throw new GitHubIntegrationException("github_rejected", "GitHub rejected the request: "
+                    + e.getResponseBodyAsString(), e);
         } catch (HttpClientErrorException.NotFound e) {
             // Also what GitHub answers when the token can't see the resource.
             throw new GitHubIntegrationException("github_not_found", "GitHub returned 404", e);

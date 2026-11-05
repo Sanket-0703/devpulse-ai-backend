@@ -2,12 +2,14 @@ import { CircleAlertIcon, Loader2Icon, SparklesIcon } from 'lucide-react'
 
 import { SegmentedControl } from '@/components/common/SegmentedControl'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { timeAgo } from '@/lib/time'
 
 import { formatCost, isActive } from './api'
 import { FindingCountBadges, ReviewStatusBadge, SeverityBadge } from './components'
+import { PublishControl } from './PublishControl'
 import type { ReviewState, SeverityFilter } from './useReviewState'
 
 const FILTERS: { value: SeverityFilter; label: string }[] = [
@@ -48,6 +50,11 @@ export function ReviewPanel({ state }: { state: ReviewState }) {
           <>
             <div className="flex flex-wrap items-center gap-3 text-sm">
               {review && <ReviewStatusBadge review={review} />}
+              {review?.triggeredBy === 'WEBHOOK' && (
+                <Badge variant="secondary" title="Started by a push to the pull request">
+                  Automatic
+                </Badge>
+              )}
               {history.length > 1 && (
                 <label className="flex items-center gap-2">
                   <span className="text-muted-foreground">Review</span>
@@ -93,6 +100,8 @@ export function ReviewPanel({ state }: { state: ReviewState }) {
                     {timeAgo(review.finishedAt ?? review.createdAt)}
                   </p>
                 </div>
+
+                <PublishControl review={review} pullRequestNumber={review.pullRequestNumber} />
 
                 {review.truncated && (
                   <Alert>

@@ -1,11 +1,13 @@
 package com.devpulse.backend.client;
 
+import com.devpulse.backend.dto.github.GitHubCreateReviewRequest;
 import com.devpulse.backend.dto.github.GitHubEmailResponse;
 import com.devpulse.backend.dto.github.GitHubInstallationRepositoriesResponse;
 import com.devpulse.backend.dto.github.GitHubInstallationTokenResponse;
 import com.devpulse.backend.dto.github.GitHubInstallationsResponse;
 import com.devpulse.backend.dto.github.GitHubPullRequestFileResponse;
 import com.devpulse.backend.dto.github.GitHubPullRequestResponse;
+import com.devpulse.backend.dto.github.GitHubReviewResponse;
 import com.devpulse.backend.dto.github.GitHubUserResponse;
 import com.devpulse.backend.entity.GitHubAccount;
 
@@ -37,6 +39,10 @@ public interface GitHubApiClient {
     /** One page of the files a pull request changes, with their diffs. */
     List<GitHubPullRequestFileResponse> listPullRequestFiles(
             String installationToken, long githubRepositoryId, int number, int page, int perPage);
+
+    /** Posts a pull request review with inline comments (needs "Pull requests: write"). */
+    GitHubReviewResponse createPullRequestReview(
+            String installationToken, long githubRepositoryId, int number, GitHubCreateReviewRequest request);
 
     // ----- with a stored account (token refreshed when needed) -----
 

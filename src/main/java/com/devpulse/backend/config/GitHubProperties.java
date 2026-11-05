@@ -13,6 +13,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param privateKeyPath the app's private key (.pem), used from Level 5 on
  * @param webUrl         https://github.com — overridable so tests can point at WireMock
  * @param apiUrl         https://api.github.com — same
+ * @param webhookSecret  shared secret GitHub signs webhook deliveries with (Level 9);
+ *                       blank = webhooks are refused
  */
 @ConfigurationProperties(prefix = "github")
 public record GitHubProperties(
@@ -23,6 +25,7 @@ public record GitHubProperties(
         String redirectUri,
         String privateKeyPath,
         String webUrl,
-        String apiUrl
+        String apiUrl,
+        String webhookSecret
 ) {
 }

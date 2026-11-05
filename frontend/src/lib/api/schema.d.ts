@@ -4,6 +4,24 @@
  */
 
 export interface paths {
+    "/api/settings/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your review settings (defaults until you change them) */
+        get: operations["get"];
+        /** Change your review settings */
+        put: operations["update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/profile": {
         parameters: {
             query?: never;
@@ -77,6 +95,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reviews/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post the findings to GitHub as a pull request review with inline comments
+         * @description 409 if the review isn't finished, is already published, or there's no installation; 502 if GitHub refuses.
+         */
+        post: operations["publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/playground/review": {
         parameters: {
             query?: never;
@@ -91,6 +129,26 @@ export interface paths {
          * @description Security rules + the AI model, like a pull request review. The code isn't stored. 400 for an empty or over-long snippet; 429 over the per-minute or daily limits.
          */
         post: operations["review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/github/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Receive a GitHub webhook delivery
+         * @description Checked with X-Hub-Signature-256. 202 accepted (handled in the background), 200 for ping or a duplicate delivery, 401 bad signature, 503 no secret configured.
+         */
+        post: operations["receive"];
         delete?: never;
         options?: never;
         head?: never;
@@ -348,14 +406,14 @@ export interface paths {
          * One of your repositories
          * @description 404 if it doesn't exist or isn't yours.
          */
-        get: operations["get"];
+        get: operations["get_1"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
         /** Turn AI review on or off for a repository */
-        patch: operations["update"];
+        patch: operations["update_1"];
         trace?: never;
     };
     "/api/vector/search": {
@@ -434,7 +492,7 @@ export interface paths {
          * One review with its findings
          * @description 404 if it isn't yours.
          */
-        get: operations["get_1"];
+        get: operations["get_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -452,6 +510,23 @@ export interface paths {
         };
         /** Your AI usage today and this month (reviews and Playground), and your limits */
         get: operations["usage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/github/webhooks/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The latest webhook deliveries for your installation */
+        get: operations["deliveries"];
         put?: never;
         post?: never;
         delete?: never;
@@ -502,7 +577,7 @@ export interface paths {
             cookie?: never;
         };
         /** One pull request, with its description */
-        get: operations["get_2"];
+        get: operations["get_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -662,6 +737,25 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ReviewSettingsRequest: {
+            autoReview: boolean;
+            autoPublish: boolean;
+            /** @enum {string} */
+            minPublishSeverity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+        };
+        ReviewSettingsResponse: {
+            /** @description Review when a pull request opens or gets new commits */
+            autoReview: boolean;
+            /** @description Publish automatic reviews to GitHub without asking */
+            autoPublish: boolean;
+            /**
+             * @description Findings below this severity aren't published
+             * @enum {string}
+             */
+            minPublishSeverity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+            /** @description Whether the server accepts GitHub webhooks (a secret is set) */
+            webhooksConfigured: boolean;
+        };
         ProfileUpdateRequest: {
             name: string;
             /** Format: email */
@@ -701,6 +795,79 @@ export interface components {
             expiresIn: number;
             user: components["schemas"]["UserResponse"];
         };
+        FindingCounts: {
+            /** Format: int32 */
+            critical: number;
+            /** Format: int32 */
+            high: number;
+            /** Format: int32 */
+            medium: number;
+            /** Format: int32 */
+            low: number;
+        };
+        ReviewResponse: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            repositoryId: number;
+            repositoryFullName: string;
+            /** Format: int32 */
+            pullRequestNumber: number;
+            pullRequestTitle: string;
+            /** @description The commit that was reviewed */
+            headSha: string;
+            /** @enum {string} */
+            status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED";
+            /**
+             * @description MANUAL (a button) or WEBHOOK (a push to the pull request)
+             * @enum {string}
+             */
+            triggeredBy: "MANUAL" | "WEBHOOK";
+            /** @example mock */
+            provider: string;
+            model: string;
+            /** Format: int32 */
+            filesReviewed: number;
+            /**
+             * Format: int32
+             * @description Removed, binary or generated files
+             */
+            filesSkipped: number;
+            /**
+             * Format: int32
+             * @description AI requests made
+             */
+            chunks: number;
+            /** @description A limit stopped the review before the end of the diff */
+            truncated: boolean;
+            /** Format: int32 */
+            promptTokens: number;
+            /** Format: int32 */
+            completionTokens: number;
+            /** @description Estimated cost in USD (0 for the mock provider) */
+            estimatedCostUsd: number;
+            openFindings: components["schemas"]["FindingCounts"];
+            /** @description Why the review failed */
+            error?: string;
+            /**
+             * Format: date-time
+             * @description When it was posted to GitHub; null = not published
+             */
+            publishedAt?: string;
+            /** @description The review on GitHub */
+            githubReviewUrl?: string;
+            /**
+             * Format: int32
+             * @description Inline comments posted on GitHub
+             */
+            publishedComments: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            finishedAt?: string;
+        };
         PlaygroundRequest: {
             /** @enum {string} */
             language: "JAVA" | "KOTLIN" | "JAVASCRIPT" | "TYPESCRIPT" | "PYTHON" | "GO" | "SQL" | "OTHER";
@@ -736,62 +903,6 @@ export interface components {
             estimatedCostUsd: number;
             /** @description A limit left part of the snippet unreviewed */
             truncated: boolean;
-        };
-        FindingCounts: {
-            /** Format: int32 */
-            critical: number;
-            /** Format: int32 */
-            high: number;
-            /** Format: int32 */
-            medium: number;
-            /** Format: int32 */
-            low: number;
-        };
-        ReviewResponse: {
-            /** Format: int64 */
-            id: number;
-            /** Format: int64 */
-            repositoryId: number;
-            repositoryFullName: string;
-            /** Format: int32 */
-            pullRequestNumber: number;
-            pullRequestTitle: string;
-            /** @description The commit that was reviewed */
-            headSha: string;
-            /** @enum {string} */
-            status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED";
-            /** @example mock */
-            provider: string;
-            model: string;
-            /** Format: int32 */
-            filesReviewed: number;
-            /**
-             * Format: int32
-             * @description Removed, binary or generated files
-             */
-            filesSkipped: number;
-            /**
-             * Format: int32
-             * @description AI requests made
-             */
-            chunks: number;
-            /** @description A limit stopped the review before the end of the diff */
-            truncated: boolean;
-            /** Format: int32 */
-            promptTokens: number;
-            /** Format: int32 */
-            completionTokens: number;
-            /** @description Estimated cost in USD (0 for the mock provider) */
-            estimatedCostUsd: number;
-            openFindings: components["schemas"]["FindingCounts"];
-            /** @description Why the review failed */
-            error?: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            startedAt?: string;
-            /** Format: date-time */
-            finishedAt?: string;
         };
         PullRequestSyncResponse: {
             /**
@@ -931,6 +1042,17 @@ export interface components {
             /** Format: int64 */
             tokensThisMonth: number;
             costThisMonthUsd: number;
+        };
+        WebhookDeliveryResponse: {
+            /** @example pull_request */
+            event: string;
+            /** @example synchronize */
+            action?: string;
+            /** @enum {string} */
+            status: "RECEIVED" | "PROCESSED" | "IGNORED" | "FAILED";
+            detail?: string;
+            /** Format: date-time */
+            receivedAt: string;
         };
         PageResponseRepositoryResponse: {
             content: components["schemas"]["RepositoryResponse"][];
@@ -1080,6 +1202,50 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReviewSettingsResponse"];
+                };
+            };
+        };
+    };
+    update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReviewSettingsResponse"];
+                };
+            };
+        };
+    };
     getProfile: {
         parameters: {
             query?: never;
@@ -1195,6 +1361,28 @@ export interface operations {
             };
         };
     };
+    publish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReviewResponse"];
+                };
+            };
+        };
+    };
     review: {
         parameters: {
             query?: never;
@@ -1215,6 +1403,34 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PlaygroundResponse"];
+                };
+            };
+        };
+    };
+    receive: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-GitHub-Event": string;
+                "X-GitHub-Delivery": string;
+                "X-Hub-Signature-256"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": string;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
                 };
             };
         };
@@ -1538,7 +1754,7 @@ export interface operations {
             };
         };
     };
-    get: {
+    get_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -1560,7 +1776,7 @@ export interface operations {
             };
         };
     };
-    update: {
+    update_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -1675,7 +1891,7 @@ export interface operations {
             };
         };
     };
-    get_1: {
+    get_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -1713,6 +1929,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AIUsageResponse"];
+                };
+            };
+        };
+    };
+    deliveries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WebhookDeliveryResponse"][];
                 };
             };
         };
@@ -1770,7 +2006,7 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    get_3: {
         parameters: {
             query?: never;
             header?: never;

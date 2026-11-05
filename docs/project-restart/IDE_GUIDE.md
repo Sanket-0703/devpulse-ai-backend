@@ -569,6 +569,54 @@ cd frontend && npm run api:types && git diff --stat src/lib/api/schema.d.ts
 
 No diff means the frontend sees exactly the same API as before the upgrade.
 
+## Level 9 — Webhooks, signatures and outgoing calls
+
+Level 9 receives calls from GitHub and makes calls to it. These are the tools to see both sides.
+
+### IntelliJ HTTP Client: send a signed webhook yourself
+
+`http/devpulse.http` has a **webhook ping** whose pre-request script signs the body with your secret, exactly like GitHub does:
+
+```
+< {%
+  const body = '{"zen":"Design for failure."}';
+  const signature = crypto.hmac.sha256().withTextSecret(request.environment.get("webhookSecret"))
+      .updateWithText(body).digest().toHex();
+  request.variables.set("signature", "sha256=" + signature);
+%}
+POST {{host}}/api/github/webhooks
+X-Hub-Signature-256: {{signature}}
+…
+```
+
+Set `webhookSecret` in `http/http-client.private.env.json` (create it; it's for secrets and stays out of Git, the same value as `GITHUB_WEBHOOK_SECRET`). Run it once: `200 pong`. Run it again: it has a new delivery id each time (`{{$uuid}}`), so it's never a duplicate. Change one character of the body and keep the old signature to see the `401`.
+
+### IntelliJ: debugging the background handler
+
+Webhook processing runs on a virtual thread after the request has returned 202:
+1. Put a breakpoint in `GitHubWebhookServiceImpl.process` (*Suspend: Thread*).
+2. Send a delivery (the HTTP request above, or **Redeliver** on GitHub).
+3. The HTTP response arrives **before** the breakpoint hits: that's the "answer fast, work later" design, visible.
+
+### Watching what DevPulse sends to GitHub
+
+- In tests, WireMock records every request: `GITHUB.findAll(postRequestedFor(...))` gives you the exact JSON body sent to GitHub's review API. `WebhookIntegrationTest` checks it.
+- On the real GitHub: the app's settings → **Advanced → Recent Deliveries** shows each webhook with its request, response code and body, plus a **Redeliver** button.
+- smee.io's channel page shows each delivery as it passes through the tunnel.
+
+### IntelliJ Database: the delivery log
+
+```sql
+SELECT delivery_id, event, action, status, detail, created_at
+FROM webhook_deliveries ORDER BY id DESC LIMIT 20;
+```
+
+Try inserting a row with an existing `delivery_id`: Postgres refuses it (`uk_webhook_deliveries_delivery_id`). That refusal is the duplicate protection.
+
+### VS Code: a dialog in tests
+
+`PublishControl` uses an `AlertDialog`. In Testing Library it's found with `findByRole('alertdialog', { name: 'Publish this review to GitHub?' })`: the name comes from the dialog's title. Hover a role query in VS Code (with the Testing Library ESLint/TS types) to see the accessible-name rules.
+
 ## Reviewing and committing changes (IntelliJ)
 
 Use IntelliJ for Git: it opens the whole repo (backend, frontend, docs) and has the best diff viewer.

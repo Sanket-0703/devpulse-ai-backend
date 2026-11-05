@@ -20,4 +20,10 @@ public interface RepositorySyncService {
     void syncAfterConnect(long githubUserId);
 
     SyncStatusResponse status(Long userId);
+
+    /** GitHub says repositories were added to or removed from an installation: sync its accounts. */
+    void syncInstallation(long installationId);
+
+    /** The app was uninstalled (or suspended): forget the installation; its repositories go with the next sync. */
+    void unlinkInstallation(long installationId);
 }

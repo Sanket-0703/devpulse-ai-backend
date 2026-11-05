@@ -8,6 +8,7 @@ import com.devpulse.backend.dto.review.ReviewResponse;
 import com.devpulse.backend.entity.PullRequest;
 import com.devpulse.backend.entity.Review;
 import com.devpulse.backend.entity.ReviewFinding;
+import com.devpulse.backend.entity.ReviewTrigger;
 import com.devpulse.backend.exception.ConflictException;
 import com.devpulse.backend.exception.ResourceNotFoundException;
 import com.devpulse.backend.exception.TooManyRequestsException;
@@ -68,7 +69,7 @@ public class ReviewServiceImpl implements ReviewService {
     // ---------- starting a review ----------
 
     @Override
-    public ReviewResponse start(Long userId, Long repositoryId, int number) {
+    public ReviewResponse start(Long userId, Long repositoryId, int number, ReviewTrigger trigger) {
 
         Long reviewId;
         try {
@@ -81,6 +82,7 @@ public class ReviewServiceImpl implements ReviewService {
                 review.setPullRequest(pullRequest);
                 review.setUser(userRepository.getReferenceById(userId));
                 review.setHeadSha(pullRequest.getHeadSha());
+                review.setTriggeredBy(trigger);
                 review.setProvider(aiProvider.name());
                 review.setModel(aiProvider.model());
                 // Flush now: the "one active review per pull request" index is checked here.

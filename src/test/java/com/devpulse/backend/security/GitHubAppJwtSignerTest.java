@@ -89,7 +89,7 @@ class GitHubAppJwtSignerTest {
 
     private static GitHubAppJwtSigner signer(String keyPath) {
         GitHubProperties properties = new GitHubProperties(424242L, "devpulse-test", "id", "secret",
-                "http://localhost/cb", keyPath, "https://github.com", "https://api.github.com");
+                "http://localhost/cb", keyPath, "https://github.com", "https://api.github.com", "webhook-secret");
         return new GitHubAppJwtSigner(properties, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 

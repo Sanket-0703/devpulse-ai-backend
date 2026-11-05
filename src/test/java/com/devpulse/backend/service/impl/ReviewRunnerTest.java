@@ -11,6 +11,8 @@ import com.devpulse.backend.exception.GitHubIntegrationException;
 import com.devpulse.backend.repository.ReviewRepository;
 import com.devpulse.backend.service.AIProvider;
 import com.devpulse.backend.service.PullRequestFilesService;
+import com.devpulse.backend.service.ReviewPublishingService;
+import com.devpulse.backend.service.ReviewSettingsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +43,8 @@ class ReviewRunnerTest {
     @Mock private PullRequestFilesService filesService;
     @Mock private AIProvider aiProvider;
     @Mock private PlatformTransactionManager transactionManager;
+    @Mock private ReviewSettingsService settingsService;
+    @Mock private ReviewPublishingService publishingService;
 
     private Review review;
     private PullRequest pullRequest;
@@ -99,7 +103,7 @@ class ReviewRunnerTest {
                 new AIProperties.Limits(20, BigDecimal.ONE, maxReviewCost, 30, 5),
                 new AIProperties.Pricing(new BigDecimal("0.15"), new BigDecimal("0.60")));
         return new ReviewRunner(reviewRepository, filesService, new ReviewEngine(aiProvider, properties), properties,
-                transactionManager,
+                settingsService, publishingService, transactionManager,
                 Clock.fixed(Instant.parse("2026-10-29T10:00:00Z"), ZoneOffset.UTC));
     }
 

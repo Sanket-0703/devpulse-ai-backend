@@ -179,7 +179,29 @@ public class GlobalExceptionHandler {
                 .body(response.getBody());
     }
 
+    @ExceptionHandler(InvalidWebhookSignatureException.class)
+    public ResponseEntity<ErrorResponse> handleBadWebhookSignature(
+            InvalidWebhookSignatureException ex, HttpServletRequest request) {
+
+        log.warn("Rejected a webhook delivery with an invalid signature");
+        return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(InvalidWebhookPayloadException.class)
+    public ResponseEntity<ErrorResponse> handleBadWebhookPayload(
+            InvalidWebhookPayloadException ex, HttpServletRequest request) {
+
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
     // ---------- 5xx ----------
+
+    @ExceptionHandler(WebhooksNotConfiguredException.class)
+    public ResponseEntity<ErrorResponse> handleWebhooksNotConfigured(
+            WebhooksNotConfiguredException ex, HttpServletRequest request) {
+
+        return build(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), request);
+    }
 
     // GitHub failed a call we made on the user's behalf (not the user's fault).
     @ExceptionHandler(GitHubIntegrationException.class)
@@ -191,6 +213,8 @@ public class GlobalExceptionHandler {
             case "github_not_found" -> "GitHub couldn't find this. The DevPulse app may no longer have access to "
                     + "the repository; sync your repositories and try again.";
             case "github_app_not_configured" -> "The GitHub App isn't fully configured on the server.";
+            case "github_rejected" -> "GitHub refused the request. If the pull request changed since the review, "
+                    + "review it again; otherwise check the app has \"Pull requests: write\" permission.";
             default -> "GitHub didn't respond as expected. Please try again in a moment.";
         };
         return build(HttpStatus.BAD_GATEWAY, message, request);

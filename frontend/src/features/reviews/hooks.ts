@@ -9,6 +9,7 @@ import {
   isActive,
   listPullRequestReviews,
   listReviews,
+  publishReview,
   type Review,
   type ReviewDetail,
   reviewKeys,
@@ -72,6 +73,26 @@ export function useDismissFinding(reviewId: number) {
       queryClient.setQueryData(reviewKeys.detail(reviewId), detail)
       void queryClient.invalidateQueries({ queryKey: ['reviews', 'pull-request'] })
       void queryClient.invalidateQueries({ queryKey: ['reviews', 'list'] })
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  })
+}
+
+/** Publishing changes the review (published at, link): refresh it and the lists. */
+export function usePublishReview(reviewId: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => publishReview(reviewId),
+    onSuccess: (review) => {
+      queryClient.setQueryData<ReviewDetail>(reviewKeys.detail(reviewId), (detail) =>
+        detail ? { ...detail, review } : detail,
+      )
+      void queryClient.invalidateQueries({ queryKey: ['reviews', 'pull-request'] })
+      toast.success(
+        review.publishedComments === 0
+          ? 'Published to GitHub'
+          : `Published to GitHub with ${review.publishedComments} comment${review.publishedComments === 1 ? '' : 's'}`,
+      )
     },
     onError: (error) => toast.error(errorMessage(error)),
   })

@@ -154,12 +154,12 @@ Decision: **GitHub App** (fine-grained permissions, per-repo install, expiring t
 
 ## Level 9 — Webhooks & GitHub comments
 
-- [ ] BE: webhook endpoint with signature check, duplicate-delivery protection, auto-review when a PR opens or updates
-- [ ] BE: publish findings as inline comments on the GitHub PR
-- [ ] FE: review settings page, "Publish to GitHub" button
-- [ ] Local tunnel guide (smee.io / ngrok) so GitHub can reach your Mac
+- [x] BE: webhook endpoint with signature check, duplicate-delivery protection, auto-review when a PR opens or updates
+- [x] BE: publish findings as inline comments on the GitHub PR
+- [x] FE: review settings page, "Publish to GitHub" button
+- [x] Local tunnel guide (smee.io / ngrok) so GitHub can reach your Mac
 
-**Check:** push to a PR on a test repo → review runs → comments appear on GitHub.
+**Check:** push to a PR on a test repo → review runs → comments appear on GitHub. (Covered by tests against a fake GitHub; the live check with your GitHub App is part of the end-to-end pass, after you set up the webhook as in [WEBHOOKS_LOCAL.md](../WEBHOOKS_LOCAL.md).)
 
 ## Level 10 — Code indexing, semantic search & RAG
 

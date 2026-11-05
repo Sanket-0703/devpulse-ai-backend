@@ -114,6 +114,24 @@ public class RepositorySyncServiceImpl implements RepositorySyncService {
         }
     }
 
+    @Override
+    public void syncInstallation(long installationId) {
+        transaction.execute(tx -> accountRepository.findByInstallationId(installationId)).stream()
+                .filter(account -> !account.isDemo())
+                .forEach(account -> start(account.getId()));
+    }
+
+    @Override
+    public void unlinkInstallation(long installationId) {
+        transaction.executeWithoutResult(tx -> accountRepository.findByInstallationId(installationId)
+                .forEach(account -> {
+                    account.setInstallationId(null);
+                    // Its repositories can't be read anymore: remove them (and their pull requests).
+                    apply(account, List.of(), clock.instant());
+                    account.setSyncStatus(SyncStatus.NEVER);
+                }));
+    }
+
     /** Starts a background sync unless one is already running for this account. */
     private void start(long accountId) {
 

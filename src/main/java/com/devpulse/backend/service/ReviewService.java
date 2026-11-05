@@ -3,6 +3,7 @@ package com.devpulse.backend.service;
 import com.devpulse.backend.dto.PageResponse;
 import com.devpulse.backend.dto.review.ReviewDetailResponse;
 import com.devpulse.backend.dto.review.ReviewResponse;
+import com.devpulse.backend.entity.ReviewTrigger;
 
 import java.util.List;
 
@@ -16,7 +17,12 @@ public interface ReviewService {
      * @throws com.devpulse.backend.exception.ConflictException        one is already running for this pull request
      * @throws com.devpulse.backend.exception.TooManyRequestsException the daily review or cost limit is reached
      */
-    ReviewResponse start(Long userId, Long repositoryId, int number);
+    default ReviewResponse start(Long userId, Long repositoryId, int number) {
+        return start(userId, repositoryId, number, ReviewTrigger.MANUAL);
+    }
+
+    /** @param trigger who asked: the user (MANUAL) or a GitHub webhook */
+    ReviewResponse start(Long userId, Long repositoryId, int number, ReviewTrigger trigger);
 
     /** The pull request's last 20 reviews, newest first. */
     List<ReviewResponse> history(Long userId, Long repositoryId, int number);
