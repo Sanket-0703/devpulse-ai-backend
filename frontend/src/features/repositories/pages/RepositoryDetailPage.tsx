@@ -10,6 +10,7 @@ import { PullRequestsSection } from '@/features/pull-requests/PullRequestsSectio
 import { ApiRequestError } from '@/lib/api/errors'
 import { timeAgo } from '@/lib/time'
 
+import { CodeIndexCard } from '../CodeIndexCard'
 import { RepositoryBadges, ReviewSwitch } from '../components'
 import { useRepository } from '../hooks'
 
@@ -109,6 +110,8 @@ export function RepositoryDetailPage() {
           </dl>
         </CardContent>
       </Card>
+
+      <CodeIndexCard repository={repo} />
 
       <PullRequestsSection repository={repo} />
     </div>

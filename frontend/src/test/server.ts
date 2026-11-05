@@ -9,6 +9,7 @@ import { playgroundHandlers } from './playgroundMock'
 import { pullRequestsHandlers } from './pullRequestsMock'
 import { repositoriesHandlers } from './repositoriesMock'
 import { reviewsHandlers } from './reviewsMock'
+import { searchHandlers } from './searchMock'
 
 /** Default API mocks. Override per test with `server.use(...)`. */
 export const handlers = [
@@ -19,6 +20,7 @@ export const handlers = [
   ...reviewsHandlers,
   ...dashboardHandlers,
   ...playgroundHandlers,
+  ...searchHandlers,
 ]
 
 export const server = setupServer(...handlers)

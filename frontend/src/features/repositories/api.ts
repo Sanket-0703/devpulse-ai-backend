@@ -57,6 +57,11 @@ export async function setReviewEnabled(id: number, reviewEnabled: boolean): Prom
   )
 }
 
+/** Starts indexing the repository's code (background); the answer shows indexStatus RUNNING. */
+export async function indexRepository(id: number): Promise<Repository> {
+  return unwrap(await api.POST('/api/github/repositories/{id}/index', { params: { path: { id } } }))
+}
+
 export async function getSyncStatus(): Promise<SyncStatus> {
   return unwrap(await api.GET('/api/github/repositories/sync'))
 }

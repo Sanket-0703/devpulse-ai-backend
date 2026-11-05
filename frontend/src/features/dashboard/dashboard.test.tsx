@@ -50,6 +50,7 @@ describe('Dashboard', () => {
           filesReviewed: 3,
           filesSkipped: 0,
           chunks: 1,
+          contextChunks: 0,
           truncated: false,
           promptTokens: 900,
           completionTokens: 100,

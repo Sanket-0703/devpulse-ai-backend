@@ -114,6 +114,7 @@ function newReview(repositoryId: number, number: number): Review {
     filesReviewed: 2,
     filesSkipped: 1,
     chunks: 1,
+    contextChunks: 0,
     truncated: false,
     promptTokens: 900,
     completionTokens: 140,

@@ -95,6 +95,8 @@ export function ReviewPanel({ state }: { state: ReviewState }) {
                     {review.filesReviewed} {review.filesReviewed === 1 ? 'file' : 'files'} reviewed
                     {review.filesSkipped > 0 && ` · ${review.filesSkipped} skipped`} ·{' '}
                     {review.chunks} AI {review.chunks === 1 ? 'request' : 'requests'} ·{' '}
+                    {review.contextChunks > 0 &&
+                      `${review.contextChunks} related code ${review.contextChunks === 1 ? 'snippet' : 'snippets'} as context · `}
                     {(review.promptTokens + review.completionTokens).toLocaleString()} tokens ·{' '}
                     {formatCost(review)} · commit {review.headSha.slice(0, 7)} ·{' '}
                     {timeAgo(review.finishedAt ?? review.createdAt)}

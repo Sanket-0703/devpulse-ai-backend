@@ -54,6 +54,9 @@ export function repository(fullName: string, overrides: Partial<Repository> = {}
     pushedAt: '2026-10-20T10:00:00Z',
     syncedAt: '2026-10-25T09:00:00Z',
     reviewEnabled: false,
+    indexStatus: 'NEVER',
+    indexedFiles: 0,
+    indexedChunks: 0,
     ...overrides,
   }
 }
@@ -165,6 +168,23 @@ export const repositoriesHandlers = [
     return repo
       ? HttpResponse.json(repo)
       : error(404, 'Repository not found', `/api/github/repositories/${params.id}`)
+  }),
+
+  // Indexing: answers RUNNING, and the next read of the repository sees it finished.
+  http.post(`${API_BASE_URL}/api/github/repositories/:id/index`, ({ request, params }) => {
+    if (!authenticated(request)) return notConnected('/api/github/repositories')
+    const repo = storedRepository(Number(params.id))
+    if (!repo) return error(404, 'Repository not found', `/api/github/repositories/${params.id}`)
+    repo.indexStatus = 'RUNNING'
+    const answer = HttpResponse.json({ ...repo }, { status: 202 })
+    Object.assign(repo, {
+      indexStatus: 'SUCCEEDED',
+      indexedAt: new Date().toISOString(),
+      indexedCommitSha: 'c0ffee1234567890',
+      indexedFiles: 42,
+      indexedChunks: 130,
+    })
+    return answer
   }),
 
   http.patch(`${API_BASE_URL}/api/github/repositories/:id`, async ({ request, params }) => {
