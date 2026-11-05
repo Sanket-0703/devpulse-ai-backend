@@ -523,6 +523,52 @@ The usage cards moved from `ReviewsPage.tsx` to `features/reviews/UsageCards.tsx
 - `⇧F12` on `UsageCards` lists both users (the Reviews page and the dashboard);
 - `npm run check` in the terminal runs lint, format, type-check and tests in one go: the frontend's "is it really green?".
 
+## Level 8.5 — Upgrading dependencies
+
+A major upgrade is mostly detective work: what changed, who brings which version, and does it still behave the same. These are the tools for it.
+
+### IntelliJ: Maven dependencies
+
+- **Maven tool window → Dependencies** shows the tree. Type in the search box (for example `swagger`) to see every path that brings an artifact; that's how the two old copies of the Swagger annotations were found.
+- With the **Maven Helper** plugin installed, open `pom.xml` → *Dependency Analyzer* tab → **Conflicts**: it lists every artifact that appears in more than one version, and right-click → *Exclude* writes the `<exclusion>` for you.
+- `⌘B` on a class name in an error (for example `PostgreSQLContainer`) opens the class from the jar, so you can see its real package and constructors.
+
+From the terminal, the same questions:
+
+```bash
+./mvnw dependency:tree -Dincludes=io.swagger.core.v3
+```
+
+```bash
+./mvnw dependency:list | grep jackson
+```
+
+### IntelliJ: what moved where
+
+- **Navigate → Class** (`⌘O`) and type `TestRestTemplate`: with "Include non-project items" ticked, it shows every class of that name on the classpath and its package (`org.springframework.boot.resttestclient`).
+- **Quick documentation** (`F1`) on an import that turned red shows nothing; on the new class it shows the Javadoc, which often says what it replaced.
+- After changing the pom, click the **Load Maven Changes** button (the little Maven icon at the top right of the editor), or IntelliJ keeps compiling against the old jars.
+
+### Finding warnings you'd otherwise miss
+
+```bash
+./mvnw -q clean test-compile -Dmaven.compiler.showDeprecation=true -Dmaven.compiler.showWarnings=true
+```
+
+No output means no deprecated APIs in use; something to check after every upgrade. In IntelliJ: *Code → Inspect Code…* → profile *Default* lists deprecated usages under "Code maturity".
+
+### Reading the startup log
+
+Start the backend and read every `WARN` and `ERROR` line once. An upgrade often adds new ones (this level found Netty's macOS DNS message and Spring Data Redis's repository scan). In IntelliJ's Run window, the filter box at the top (or right-click → *Fold Lines Like This*) hides the noise so the real messages stand out.
+
+### Checking the API contract didn't change
+
+```bash
+cd frontend && npm run api:types && git diff --stat src/lib/api/schema.d.ts
+```
+
+No diff means the frontend sees exactly the same API as before the upgrade.
+
 ## Reviewing and committing changes (IntelliJ)
 
 Use IntelliJ for Git: it opens the whole repo (backend, frontend, docs) and has the best diff viewer.

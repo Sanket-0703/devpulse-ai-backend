@@ -5,7 +5,7 @@ import com.devpulse.backend.dto.UserResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -102,7 +102,7 @@ class ProfileIntegrationTest extends AbstractIntegrationTest {
         assertThat(rest.exchange("/api/auth/me", HttpMethod.GET, bearer(token), Map.class).getStatusCode())
                 .isEqualTo(HttpStatus.OK);
         assertThat(login(newEmail, PASSWORD).getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(login(email, PASSWORD).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(loginExpectingError(email, PASSWORD).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     @Test
@@ -174,7 +174,7 @@ class ProfileIntegrationTest extends AbstractIntegrationTest {
         assertThat(refresh(cookie(changed)).getStatusCode()).isEqualTo(HttpStatus.OK);
 
         // Only the new password works from now on.
-        assertThat(login(email, PASSWORD).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(loginExpectingError(email, PASSWORD).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(login(email, NEW_PASSWORD).getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
@@ -221,6 +221,11 @@ class ProfileIntegrationTest extends AbstractIntegrationTest {
 
     private ResponseEntity<AuthResponse> login(String email, String password) {
         return rest.postForEntity("/api/auth/login", Map.of("email", email, "password", password), AuthResponse.class);
+    }
+
+    /** Reads the error body as JSON, not as an AuthResponse (Jackson 3 won't fill missing numbers with 0). */
+    private ResponseEntity<Map> loginExpectingError(String email, String password) {
+        return rest.postForEntity("/api/auth/login", Map.of("email", email, "password", password), Map.class);
     }
 
     private ResponseEntity<Map> refresh(String cookie) {

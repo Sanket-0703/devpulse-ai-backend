@@ -150,7 +150,7 @@ Decision: **GitHub App** (fine-grained permissions, per-repo install, expiring t
 
 ## Level 8.5 — Framework upgrade
 
-- [ ] Upgrade to Spring Boot 4 / Spring AI 2 on its own branch, with no feature work mixed in; the test suite from Levels 1–8 catches breakage
+- [x] Upgrade to Spring Boot 4 / Spring AI 2 on its own branch, with no feature work mixed in; the test suite from Levels 1–8 catches breakage (Boot 4.1.2, Spring AI 2.0.2)
 
 ## Level 9 — Webhooks & GitHub comments
 

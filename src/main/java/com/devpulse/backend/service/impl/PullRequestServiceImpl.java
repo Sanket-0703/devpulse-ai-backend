@@ -47,7 +47,7 @@ public class PullRequestServiceImpl implements PullRequestService {
         repositoryRepository.findByIdAndGithubAccountUserId(repositoryId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Repository not found"));
 
-        Specification<PullRequest> spec = Specification.where(inRepository(repositoryId))
+        Specification<PullRequest> spec = inRepository(repositoryId)
                 .and(stateIs(state))
                 .and(matches(query));
         PageRequest pageRequest = PageRequest.of(Math.max(page, 0), Math.clamp(size, 1, MAX_PAGE_SIZE),
@@ -81,13 +81,13 @@ public class PullRequestServiceImpl implements PullRequestService {
     }
 
     private static Specification<PullRequest> stateIs(PullRequestState state) {
-        return state == null ? null : (root, q, cb) -> cb.equal(root.get("state"), state);
+        return state == null ? Specification.unrestricted() : (root, q, cb) -> cb.equal(root.get("state"), state);
     }
 
     /** Title or author contains the text; "42" or "#42" also finds pull request #42. */
     private static Specification<PullRequest> matches(String query) {
         if (query == null || query.isBlank()) {
-            return null;
+            return Specification.unrestricted();
         }
         String pattern = SqlLike.containsPattern(query);
         Integer number = parseNumber(query);

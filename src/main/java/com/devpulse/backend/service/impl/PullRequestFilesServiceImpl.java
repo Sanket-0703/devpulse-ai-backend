@@ -11,10 +11,10 @@ import com.devpulse.backend.exception.GitHubIntegrationException;
 import com.devpulse.backend.service.GitHubInstallationTokenService;
 import com.devpulse.backend.service.PullRequestFilesService;
 import com.devpulse.backend.service.RedisService;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -35,18 +35,18 @@ public class PullRequestFilesServiceImpl implements PullRequestFilesService {
     private final GitHubInstallationTokenService installationTokens;
     private final GitHubApiClient apiClient;
     private final RedisService redisService;
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
 
     public PullRequestFilesServiceImpl(
             GitHubInstallationTokenService installationTokens,
             GitHubApiClient apiClient,
             RedisService redisService,
-            ObjectMapper objectMapper) {
+            JsonMapper jsonMapper) {
 
         this.installationTokens = installationTokens;
         this.apiClient = apiClient;
         this.redisService = redisService;
-        this.objectMapper = objectMapper;
+        this.jsonMapper = jsonMapper;
     }
 
     /** The Redis key of a pull request's files: GitHub repository id, number and head commit. */
@@ -106,8 +106,8 @@ public class PullRequestFilesServiceImpl implements PullRequestFilesService {
             return null;
         }
         try {
-            return objectMapper.readValue(json, PullRequestFilesResponse.class);
-        } catch (JsonProcessingException e) {
+            return jsonMapper.readValue(json, PullRequestFilesResponse.class);
+        } catch (JacksonException e) {
             // e.g. written by an older version with a different shape: refetch.
             log.warn("Ignoring unreadable cache entry {}", key);
             return null;
@@ -116,11 +116,11 @@ public class PullRequestFilesServiceImpl implements PullRequestFilesService {
 
     private void writeCache(String key, PullRequestFilesResponse response) {
         try {
-            String json = objectMapper.writeValueAsString(response);
+            String json = jsonMapper.writeValueAsString(response);
             if (json.length() <= MAX_CACHED_CHARS) {
                 redisService.set(key, json, FILES_CACHE_TTL);
             }
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.warn("Could not cache the files of {}", key, e);
         }
     }

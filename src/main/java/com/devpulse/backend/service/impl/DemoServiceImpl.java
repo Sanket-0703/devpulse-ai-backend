@@ -18,7 +18,6 @@ import com.devpulse.backend.repository.UserRepository;
 import com.devpulse.backend.service.DemoService;
 import com.devpulse.backend.service.RedisService;
 import com.devpulse.backend.service.ReviewService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -27,6 +26,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -65,7 +65,7 @@ public class DemoServiceImpl implements DemoService {
     private final ReviewRepository reviewRepository;
     private final ReviewService reviewService;
     private final RedisService redisService;
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
     private final Resource demoFiles;
     private final TransactionTemplate transaction;
     private final Clock clock;
@@ -79,7 +79,7 @@ public class DemoServiceImpl implements DemoService {
             ReviewRepository reviewRepository,
             ReviewService reviewService,
             RedisService redisService,
-            ObjectMapper objectMapper,
+            JsonMapper jsonMapper,
             @Value("classpath:demo/shop-api-pr-12-files.json") Resource demoFiles,
             PlatformTransactionManager transactionManager,
             Clock clock) {
@@ -92,7 +92,7 @@ public class DemoServiceImpl implements DemoService {
         this.reviewRepository = reviewRepository;
         this.reviewService = reviewService;
         this.redisService = redisService;
-        this.objectMapper = objectMapper;
+        this.jsonMapper = jsonMapper;
         this.demoFiles = demoFiles;
         this.transaction = new TransactionTemplate(transactionManager);
         this.clock = clock;
@@ -221,7 +221,7 @@ public class DemoServiceImpl implements DemoService {
 
     private PullRequestFilesResponse readFiles() {
         try {
-            return objectMapper.readValue(demoFiles.getContentAsString(StandardCharsets.UTF_8),
+            return jsonMapper.readValue(demoFiles.getContentAsString(StandardCharsets.UTF_8),
                     PullRequestFilesResponse.class);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
